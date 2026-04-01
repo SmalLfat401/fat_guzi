@@ -1,0 +1,69 @@
+# ============================================
+# Fat OpenClaw - Project-level .gitignore
+# Generated from project restructuring (2026-03-30)
+# ============================================
+
+# ============================================
+# Python (server/backend/)
+# ============================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+venv/
+ENV/
+env/
+.venv/
+
+# FastAPI / Uvicorn
+*.log
+
+# Environment
+.env.local
+.env.*.local
+
+# Playwright
+.playwright/
+test-results/
+playwright-report/
+
+# ============================================
+# Frontend (web/)
+# ============================================
+node_modules/
+dist/
+.next/
+out/
+build/
+
+# ============================================
+# IDE & OS (all directories)
+# ============================================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# ============================================
+# Local files (never commit)
+# ============================================
+.task_state.json

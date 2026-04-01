@@ -1,0 +1,179 @@
+/**
+ * 全局样式
+ */
+
+/* 引入主题变量 */
+@use './variables.scss' as *;
+
+/* CSS Reset */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-text-size-adjust: 100%;
+  background-color: var(--bg-page);
+  color: var(--text-primary);
+  line-height: 1.5;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+/* 移动端适配 */
+@media screen and (max-width: 750px) {
+  html {
+    font-size: calc(16 / 375 * 100vw);
+  }
+}
+
+/* 去除 iOS 点击高亮 */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* 去除 iOS 输入框默认样式 */
+input,
+textarea {
+  -webkit-appearance: none;
+  outline: none;
+}
+
+/* 链接样式 */
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* 图片自适应 */
+img {
+  max-width: 100%;
+  display: block;
+}
+
+/* 列表样式 */
+ul,
+ol {
+  list-style: none;
+}
+
+/* 隐藏滚动条但保持功能 */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* Flex 工具类 */
+.flex {
+  display: flex;
+}
+
+.flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.flex-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.flex-col {
+  display: flex;
+  flex-direction: column;
+}
+
+/* 文字省略 */
+.text-ellipsis {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.text-ellipsis-2 {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 动画 */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.fade-in {
+  animation: fadeIn 0.3s ease;
+}
+
+.slide-up {
+  animation: slideUp 0.3s ease;
+}
+
+/* App 容器 */
+.app {
+  min-height: 100vh;
+  background-color: var(--bg-page);
+}
+
+.page-container {
+  padding-bottom: calc(50px + env(safe-area-inset-bottom));
+  min-height: 100vh;
+}
+
+.page-container.no-tabbar {
+  padding-bottom: 0;
+}
+
+/* 底部安全区 */
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* antd-mobile 组件样式覆盖 */
+.adm-card {
+  border-radius: var(--radius-md);
+}
+
+.adm-list-item {
+  --background-color: var(--bg-card);
+}
+
+.adm-tab-bar {
+  --background-color: var(--bg-card);
+}

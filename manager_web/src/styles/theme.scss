@@ -1,0 +1,103 @@
+// 科技金融风格 - Cyber 霓虹主题
+// 参考 demo.html 的 AI金融分析平台 风格
+// ============================================
+
+// 背景色 - 深邃科技黑
+$bg-primary: #0a0e1a;
+$bg-secondary: #111827;
+$bg-tertiary: #1a2234;
+
+// 主强调色 - 霓虹青
+$accent-cyan: #00f0ff;
+$accent-blue: #0066ff;
+$accent-purple: #8b5cf6;
+$accent-green: #00ff88;
+$accent-red: #ff3366;
+$accent-gold: #ffd700;
+
+// 文字色
+$text-primary: #e5e7eb;
+$text-secondary: #9ca3af;
+$text-muted: #6e7681;
+
+// 边框色 - 霓虹发光感
+$border-color: rgba(0, 240, 255, 0.2);
+
+// 渐变色
+$gradient-primary: linear-gradient(135deg, $accent-cyan, $accent-blue);
+$gradient-glow: linear-gradient(90deg, transparent, rgba(0, 240, 255, 0.3), transparent);
+
+// 阴影
+$shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
+$shadow-md: 0 4px 16px rgba(0, 0, 0, 0.4);
+$shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.5);
+$shadow-glow: 0 0 20px rgba(0, 240, 255, 0.15);
+$shadow-card-glow: 0 0 40px rgba(0, 240, 255, 0.1);
+
+// 圆角
+$radius-sm: 4px;
+$radius-md: 8px;
+$radius-lg: 12px;
+
+// 间距
+$spacing-xs: 4px;
+$spacing-sm: 8px;
+$spacing-md: 16px;
+$spacing-lg: 24px;
+$spacing-xl: 32px;
+
+// 字体
+$font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', 'Noto Sans SC', Roboto, sans-serif;
+$font-mono: 'SF Mono', 'Monaco', 'JetBrains Mono', 'Fira Code', monospace;
+
+// 混合宏
+@mixin flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@mixin flex-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+@mixin card-style {
+  background: $bg-secondary;
+  border-radius: $radius-lg;
+  border: 1px solid $border-color;
+  position: relative;
+  overflow: hidden;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: $gradient-glow;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+  
+  &:hover::before {
+    opacity: 1;
+  }
+}
+
+// 导出为 CSS 变量
+:root {
+  --bg-primary: #{$bg-primary};
+  --bg-secondary: #{$bg-secondary};
+  --bg-tertiary: #{$bg-tertiary};
+  --accent-cyan: #{$accent-cyan};
+  --accent-blue: #{$accent-blue};
+  --accent-purple: #{$accent-purple};
+  --accent-green: #{$accent-green};
+  --accent-red: #{$accent-red};
+  --text-primary: #{$text-primary};
+  --text-secondary: #{$text-secondary};
+  --border-color: #{$border-color};
+}

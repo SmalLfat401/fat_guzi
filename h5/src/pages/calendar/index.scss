@@ -1,0 +1,178 @@
+/**
+ * 日历页面样式
+ */
+@use '@/styles/variables.scss' as *;
+
+.calendar-page {
+  min-height: 100vh;
+  background: $bg-page;
+
+  .calendar-tabs {
+    :global(.adm-tabs-tab-list) {
+      background: $bg-card;
+    }
+
+    :global(.adm-tabs-content) {
+      padding: 0;
+    }
+  }
+
+  .calendar-content {
+    padding: $spacing-base;
+  }
+
+  // 月份选择器
+  .month-selector {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: $spacing-md $spacing-base;
+    background: $bg-card;
+    border-radius: $radius-md;
+    margin-bottom: $spacing-base;
+
+    .month-nav {
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: $font-size-2xl;
+      color: $primary-color;
+      cursor: pointer;
+      border-radius: $radius-round;
+      transition: background var(--transition-fast);
+
+      &:active {
+        background: #FFF0F3;
+      }
+    }
+
+    .current-month {
+      font-size: $font-size-lg;
+      font-weight: $font-weight-semibold;
+      color: $text-primary;
+    }
+  }
+
+  // 加载状态
+  .loading-list {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-md;
+  }
+
+  // 事件列表
+  .events-list {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-lg;
+  }
+
+  .month-group {
+    .month-title {
+      font-size: $font-size-sm;
+      font-weight: $font-weight-semibold;
+      color: $primary-color;
+      margin-bottom: $spacing-md;
+      padding-left: $spacing-xs;
+    }
+  }
+
+  .event-card,
+  .release-card {
+    border-radius: $radius-md;
+    overflow: hidden;
+    margin-bottom: 0;
+    background: $bg-card;
+    box-shadow: var(--shadow-sm);
+
+    .event-item,
+    .release-item {
+      display: flex;
+      align-items: center;
+      padding: $spacing-md;
+      gap: $spacing-md;
+
+      .event-cover,
+      .release-cover {
+        width: 80px;
+        height: 80px;
+        border-radius: $radius-sm;
+        object-fit: cover;
+      }
+
+      .event-detail,
+      .release-detail {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: $spacing-xs;
+
+        .event-title,
+        .release-title {
+          font-size: $font-size-md;
+          font-weight: $font-weight-semibold;
+          color: $text-primary;
+          @include text-ellipsis;
+        }
+
+        .event-meta {
+          display: flex;
+          flex-direction: column;
+          gap: $spacing-xs;
+
+          .meta-item {
+            display: flex;
+            align-items: center;
+            gap: $spacing-xs;
+            font-size: $font-size-sm;
+            color: $text-secondary;
+          }
+        }
+
+        .release-price {
+          display: flex;
+          align-items: center;
+          gap: $spacing-sm;
+
+          .current-price {
+            font-size: $font-size-lg;
+            font-weight: $font-weight-semibold;
+            color: $primary-color;
+          }
+
+          .original-price {
+            font-size: $font-size-sm;
+            color: $text-tertiary;
+            text-decoration: line-through;
+          }
+        }
+
+        .release-date {
+          display: flex;
+          align-items: center;
+          gap: $spacing-xs;
+          font-size: $font-size-sm;
+          color: $text-secondary;
+        }
+
+        .status-tag {
+          align-self: flex-start;
+        }
+      }
+
+      .arrow-icon {
+        color: $text-tertiary;
+        flex-shrink: 0;
+      }
+    }
+  }
+
+  // 上新列表
+  .releases-list {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-md;
+  }
+}

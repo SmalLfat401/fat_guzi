@@ -1,0 +1,309 @@
+// 引入主题配置
+@use './theme' as *;
+
+// 全局样式
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  font-family: $font-family;
+  background: $bg-primary;
+  color: $text-primary;
+  -webkit-font-smoothing: antialiased;
+  min-width: 1024px;
+  overflow-x: auto;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+// 背景动画网格
+.bg-animation {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.3;
+}
+
+.grid-pattern {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background-image: 
+    linear-gradient(rgba(0, 240, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 240, 255, 0.05) 1px, transparent 1px);
+  background-size: 50px 50px;
+}
+
+// 布局容器
+.app-layout {
+  min-height: 100vh;
+  background: $bg-primary;
+  position: relative;
+  z-index: 1;
+  
+  .app-header {
+    background: rgba(10, 14, 26, 0.9) !important;
+    backdrop-filter: blur(10px);
+    padding: 0 $spacing-lg !important;
+    display: flex;
+    align-items: center;
+    box-shadow: $shadow-md;
+    position: relative;
+    border-bottom: 1px solid $border-color;
+    
+    .header-title {
+      font-family: 'Orbitron', $font-family;
+      font-size: 20px;
+      font-weight: 700;
+      background: $gradient-primary;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      letter-spacing: 2px;
+    }
+  }
+  
+  .app-sider {
+    background: $bg-secondary !important;
+    border-right: 1px solid $border-color;
+    box-shadow: $shadow-card-glow;
+    
+    .ant-menu {
+      background: transparent;
+      border-right: none;
+      padding: $spacing-md 0;
+      
+      .ant-menu-item {
+        margin: 2px 8px;
+        border-radius: $radius-md;
+        color: $text-secondary;
+        transition: all 0.3s ease;
+        
+        &:hover {
+          background: rgba(0, 240, 255, 0.05);
+          border-color: $accent-cyan;
+        }
+        
+        &.ant-menu-item-selected {
+          background: linear-gradient(135deg, rgba(0, 240, 255, 0.15), rgba(0, 102, 255, 0.15));
+          border-color: $accent-cyan;
+          color: $accent-cyan;
+          font-weight: 700;
+        }
+      }
+    }
+  }
+  
+  .app-content {
+    background: $bg-primary;
+    min-height: calc(100vh - 64px);
+    padding: $spacing-lg;
+  }
+  
+  .content-card {
+    @include card-style;
+    padding: $spacing-lg;
+    box-shadow: $shadow-card-glow;
+  }
+}
+
+// 统计卡片
+.stats-card {
+  @include card-style;
+  padding: $spacing-lg;
+  transition: all 0.3s ease;
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: $shadow-glow;
+  }
+  
+  .stats-title {
+    color: $text-secondary;
+    font-size: 12px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: $spacing-sm;
+  }
+  
+  .stats-value {
+    font-size: 32px;
+    font-weight: 700;
+    font-family: $font-mono;
+    color: $text-primary;
+  }
+  
+  .stats-icon {
+    position: absolute;
+    right: $spacing-lg;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 42px;
+    opacity: 0.12;
+    color: $accent-cyan;
+  }
+  
+  &.stats-success {
+    border-left: 3px solid $accent-green;
+    .stats-value { color: $accent-green; }
+    .stats-icon { color: $accent-green; }
+  }
+  
+  &.stats-warning {
+    border-left: 3px solid $accent-gold;
+    .stats-value { color: $accent-gold; }
+    .stats-icon { color: $accent-gold; }
+  }
+}
+
+// 页面标题
+.page-header {
+  @include flex-between;
+  padding: $spacing-lg 0;
+  margin-bottom: $spacing-md;
+  
+  .page-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: $text-primary;
+  }
+}
+
+// 表格样式
+.data-table {
+  .ant-table {
+    background: $bg-secondary;
+
+    .ant-table-container {
+      border-radius: $radius-md;
+      overflow: hidden;
+    }
+
+    .ant-table-thead > tr > th {
+      background: $bg-tertiary;
+      color: $text-secondary;
+      font-weight: 600;
+      border-bottom: 1px solid $border-color;
+    }
+
+    .ant-table-tbody > tr > td {
+      background: $bg-secondary;
+      border-bottom: 1px solid rgba(0, 240, 255, 0.05);
+      color: $text-primary;
+    }
+
+    .ant-table-tbody > tr:hover > td {
+      // background: rgba(0, 240, 255, 0.08);
+    }
+  }
+
+  .ant-table-cell-fix-left,
+  .ant-table-cell-fix-right {
+    background: $bg-secondary !important;
+  }
+
+  .ant-table-tbody > tr:hover > .ant-table-cell-fix-left,
+  .ant-table-tbody > tr:hover > .ant-table-cell-fix-right {
+    background: rgba(0, 240, 255, 0.08) !important;
+  }
+
+  .ant-table-row {
+    background: $bg-secondary;
+  }
+
+  .ant-table-placeholder {
+    background: $bg-secondary !important;
+  }
+  
+  .ant-pagination {
+    .ant-pagination-item {
+      background: $bg-tertiary;
+      border-color: $border-color;
+      
+      a { color: $text-secondary; }
+      
+      &.ant-pagination-item-active {
+        background: linear-gradient(135deg, $accent-cyan, $accent-blue);
+        border-color: $accent-cyan;
+        a { color: $bg-primary; }
+      }
+    }
+  }
+}
+
+// 按钮
+.btn-primary {
+  background: $gradient-primary !important;
+  border: none !important;
+  color: white !important;
+  font-weight: 600;
+  
+  &:hover {
+    box-shadow: 0 8px 20px rgba(0, 240, 255, 0.3) !important;
+  }
+}
+
+// 开关
+.ant-switch {
+  background: $bg-tertiary;
+  
+  &.ant-switch-checked {
+    background: $gradient-primary !important;
+  }
+}
+
+// 链接
+a {
+  color: $accent-cyan;
+  &:hover { color: #5cf3ff; }
+}
+
+// 滚动条
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: $bg-tertiary;
+}
+
+::-webkit-scrollbar-thumb {
+  background: $accent-cyan;
+  border-radius: 3px;
+}
+
+// 动画
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.fade-in {
+  animation: fadeIn 0.3s ease-out;
+}
+
+.text-mono {
+  font-family: $font-mono;
+}
+
+// 标签样式
+.tag-active {
+  background: linear-gradient(135deg, rgba(0, 255, 136, 0.1), rgba(0, 255, 136, 0.2));
+  border: 1px solid rgba(0, 255, 136, 0.3);
+  color: $accent-green;
+}
+
+.tag-inactive {
+  background: linear-gradient(135deg, rgba(255, 51, 102, 0.1), rgba(255, 51, 102, 0.2));
+  border: 1px solid rgba(255, 51, 102, 0.3);
+  color: $accent-red;
+}

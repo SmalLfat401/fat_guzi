@@ -1,0 +1,1263 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI金融分析平台</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-primary: #0a0e1a;
+            --bg-secondary: #111827;
+            --bg-tertiary: #1a2234;
+            --accent-cyan: #00f0ff;
+            --accent-blue: #0066ff;
+            --accent-purple: #8b5cf6;
+            --accent-green: #00ff88;
+            --accent-red: #ff3366;
+            --text-primary: #e5e7eb;
+            --text-secondary: #9ca3af;
+            --border-color: rgba(0, 240, 255, 0.2);
+        }
+
+        body {
+            font-family: 'Noto Sans SC', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        /* 背景动画效果 */
+        .bg-animation {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+            opacity: 0.3;
+        }
+
+        .grid-pattern {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                linear-gradient(rgba(0, 240, 255, 0.1) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 240, 255, 0.1) 1px, transparent 1px);
+            background-size: 50px 50px;
+            animation: gridMove 20s linear infinite;
+        }
+
+        @keyframes gridMove {
+            0% { transform: translate(0, 0); }
+            100% { transform: translate(50px, 50px); }
+        }
+
+        .container {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            height: 100vh;
+            padding: 20px;
+            gap: 20px;
+        }
+
+        /* 头部标题 */
+        .header {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            padding: 20px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(10, 14, 26, 0.8);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--border-color);
+            z-index: 10;
+        }
+
+        .logo {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 24px;
+            font-weight: 900;
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-blue));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: 2px;
+        }
+
+        .header-status {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background: var(--accent-green);
+            border-radius: 50%;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        /* 左侧对话区域 */
+        .chat-panel {
+            flex: 0 0 420px;
+            display: flex;
+            flex-direction: column;
+            background: var(--bg-secondary);
+            border-radius: 16px;
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+            margin-top: 80px;
+            box-shadow: 0 0 40px rgba(0, 240, 255, 0.1);
+        }
+
+        .agent-selector {
+            display: flex;
+            padding: 16px;
+            gap: 8px;
+            background: var(--bg-tertiary);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .agent-btn {
+            flex: 1;
+            padding: 12px 8px;
+            background: rgba(0, 240, 255, 0.05);
+            border: 1px solid rgba(0, 240, 255, 0.2);
+            border-radius: 8px;
+            color: var(--text-secondary);
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+
+        .agent-btn:hover {
+            background: rgba(0, 240, 255, 0.1);
+            border-color: var(--accent-cyan);
+        }
+
+        .agent-btn.active {
+            background: linear-gradient(135deg, rgba(0, 240, 255, 0.2), rgba(0, 102, 255, 0.2));
+            border-color: var(--accent-cyan);
+            color: var(--accent-cyan);
+            font-weight: 700;
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .chat-messages::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .chat-messages::-webkit-scrollbar-track {
+            background: var(--bg-tertiary);
+        }
+
+        .chat-messages::-webkit-scrollbar-thumb {
+            background: var(--accent-cyan);
+            border-radius: 3px;
+        }
+
+        .message {
+            padding: 14px 16px;
+            border-radius: 12px;
+            max-width: 85%;
+            animation: messageSlide 0.3s ease-out;
+        }
+
+        @keyframes messageSlide {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message.user {
+            align-self: flex-end;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+            color: white;
+        }
+
+        .message.ai {
+            align-self: flex-start;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+        }
+
+        .message.ai .agent-tag {
+            font-size: 10px;
+            color: var(--accent-cyan);
+            font-weight: 700;
+            margin-bottom: 6px;
+            font-family: 'Orbitron', sans-serif;
+        }
+
+        .chat-input-area {
+            padding: 16px;
+            background: var(--bg-tertiary);
+            border-top: 1px solid var(--border-color);
+        }
+
+        .input-wrapper {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .chat-input {
+            flex: 1;
+            padding: 12px 16px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: 14px;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        .chat-input:focus {
+            border-color: var(--accent-cyan);
+            box-shadow: 0 0 0 3px rgba(0, 240, 255, 0.1);
+        }
+
+        .send-btn {
+            padding: 12px 20px;
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-blue));
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 12px;
+            letter-spacing: 1px;
+        }
+
+        .send-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0, 240, 255, 0.3);
+        }
+
+        /* 右侧可视化区域 */
+        .visualization-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            margin-top: 80px;
+        }
+
+        .viz-header {
+            padding: 20px;
+            background: var(--bg-secondary);
+            border-radius: 16px;
+            border: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .viz-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 20px;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--accent-cyan), white);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .viz-stats {
+            display: flex;
+            gap: 30px;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-label {
+            font-size: 10px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .stat-value {
+            font-size: 18px;
+            font-weight: 700;
+            margin-top: 4px;
+            font-family: 'Orbitron', sans-serif;
+        }
+
+        .stat-value.positive {
+            color: var(--accent-green);
+        }
+
+        .stat-value.negative {
+            color: var(--accent-red);
+        }
+
+        .viz-content {
+            flex: 1;
+            display: grid;
+            gap: 20px;
+            overflow-y: auto;
+        }
+
+        .viz-content::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .viz-content::-webkit-scrollbar-track {
+            background: var(--bg-secondary);
+            border-radius: 4px;
+        }
+
+        .viz-content::-webkit-scrollbar-thumb {
+            background: var(--accent-cyan);
+            border-radius: 4px;
+        }
+
+        /* 个股分析布局 */
+        .viz-content.stock-analysis {
+            grid-template-columns: 2fr 1fr;
+            grid-template-rows: 2fr 1fr 1fr;
+        }
+
+        /* 热点情绪布局 */
+        .viz-content.sentiment-tracking {
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: 1fr 1fr;
+        }
+
+        /* 资产配置布局 */
+        .viz-content.asset-allocation {
+            grid-template-columns: 1.5fr 1fr;
+            grid-template-rows: 1fr 1fr;
+        }
+
+        .chart-card {
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .chart-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--accent-cyan), transparent);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .chart-card:hover::before {
+            opacity: 1;
+        }
+
+        .chart-card.large {
+            grid-row: span 2;
+        }
+
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .chart-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .chart-indicator {
+            font-size: 11px;
+            padding: 4px 10px;
+            background: rgba(0, 240, 255, 0.1);
+            border-radius: 12px;
+            color: var(--accent-cyan);
+            font-family: 'Orbitron', sans-serif;
+        }
+
+        .chart-body {
+            flex: 1;
+            position: relative;
+            min-height: 0;
+        }
+
+        canvas {
+            max-height: 100%;
+        }
+
+        /* 数据表格样式 */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+        }
+
+        .data-table th {
+            text-align: left;
+            padding: 10px;
+            background: var(--bg-tertiary);
+            color: var(--text-secondary);
+            font-weight: 500;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .data-table td {
+            padding: 10px;
+            border-bottom: 1px solid rgba(0, 240, 255, 0.05);
+        }
+
+        .data-table tr:hover {
+            background: rgba(0, 240, 255, 0.05);
+        }
+
+        /* 概念标签 */
+        .concept-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            padding: 12px;
+        }
+
+        .concept-tag {
+            padding: 6px 12px;
+            background: linear-gradient(135deg, rgba(0, 240, 255, 0.1), rgba(0, 102, 255, 0.1));
+            border: 1px solid rgba(0, 240, 255, 0.3);
+            border-radius: 16px;
+            font-size: 11px;
+            color: var(--accent-cyan);
+            font-weight: 500;
+        }
+
+        /* 响应式 */
+        @media (max-width: 1400px) {
+            .chat-panel {
+                flex: 0 0 360px;
+            }
+        }
+
+        @media (max-width: 1024px) {
+            .container {
+                flex-direction: column;
+            }
+            
+            .chat-panel {
+                flex: 0 0 300px;
+            }
+
+            .viz-content.stock-analysis,
+            .viz-content.sentiment-tracking,
+            .viz-content.asset-allocation {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-animation">
+        <div class="grid-pattern"></div>
+    </div>
+
+    <div class="header">
+        <div class="logo">AI·FINTECH</div>
+        <div class="header-status">
+            <div class="status-dot"></div>
+            <span>系统运行中</span>
+            <span style="margin-left: 20px;">2026-02-03 14:32:15</span>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- 左侧对话面板 -->
+        <div class="chat-panel">
+            <div class="agent-selector">
+                <button class="agent-btn active" data-agent="stock">
+                    多维个股分析
+                </button>
+                <button class="agent-btn" data-agent="sentiment">
+                    热点情绪跟踪
+                </button>
+                <button class="agent-btn" data-agent="allocation">
+                    核心资产配置
+                </button>
+            </div>
+
+            <div class="chat-messages" id="chatMessages">
+                <div class="message ai">
+                    <div class="agent-tag">多维个股分析 AI</div>
+                    <div>您好！我是多维个股分析助手，可以为您提供全方位的个股深度分析，包括技术面、基本面、资金流向等多个维度。请问您想分析哪只股票？</div>
+                </div>
+            </div>
+
+            <div class="chat-input-area">
+                <div class="input-wrapper">
+                    <input type="text" class="chat-input" id="chatInput" placeholder="输入您的问题...">
+                    <button class="send-btn" id="sendBtn">发送</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 右侧可视化面板 -->
+        <div class="visualization-panel">
+            <div class="viz-header">
+                <div class="viz-title" id="vizTitle">贵州茅台 (600519) - 个股分析</div>
+                <div class="viz-stats">
+                    <div class="stat-item">
+                        <div class="stat-label">当前价</div>
+                        <div class="stat-value">1688.50</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">涨跌幅</div>
+                        <div class="stat-value positive">+2.35%</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">成交量</div>
+                        <div class="stat-value">12.8万手</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 个股分析可视化 -->
+            <div class="viz-content stock-analysis" id="stockAnalysisViz">
+                <div class="chart-card large">
+                    <div class="chart-header">
+                        <div class="chart-title">日K线图</div>
+                        <div class="chart-indicator">MA5 · MA10 · MA20</div>
+                    </div>
+                    <div class="chart-body">
+                        <canvas id="klineChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <div class="chart-title">股东结构</div>
+                        <div class="chart-indicator">TOP 10</div>
+                    </div>
+                    <div class="chart-body">
+                        <canvas id="shareholderChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <div class="chart-title">财报关键指标</div>
+                        <div class="chart-indicator">近4季度</div>
+                    </div>
+                    <div class="chart-body">
+                        <canvas id="financialChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <div class="chart-title">涉及概念与行业</div>
+                    </div>
+                    <div class="chart-body">
+                        <div class="concept-tags">
+                            <div class="concept-tag">白酒</div>
+                            <div class="concept-tag">消费升级</div>
+                            <div class="concept-tag">高端白酒</div>
+                            <div class="concept-tag">贵州国资</div>
+                            <div class="concept-tag">核心资产</div>
+                            <div class="concept-tag">MSCI</div>
+                            <div class="concept-tag">沪股通</div>
+                            <div class="concept-tag">茅台系列</div>
+                        </div>
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>业务板块</th>
+                                    <th>占比</th>
+                                    <th>同比</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>茅台酒</td>
+                                    <td>92.3%</td>
+                                    <td style="color: var(--accent-green);">+15.2%</td>
+                                </tr>
+                                <tr>
+                                    <td>系列酒</td>
+                                    <td>6.8%</td>
+                                    <td style="color: var(--accent-green);">+8.5%</td>
+                                </tr>
+                                <tr>
+                                    <td>其他</td>
+                                    <td>0.9%</td>
+                                    <td style="color: var(--text-secondary);">+2.1%</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 热点情绪跟踪可视化（默认隐藏） -->
+            <div class="viz-content sentiment-tracking" id="sentimentViz" style="display: none;">
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <div class="chart-title">市场情绪指数</div>
+                        <div class="chart-indicator">实时</div>
+                    </div>
+                    <div class="chart-body">
+                        <canvas id="sentimentIndexChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <div class="chart-title">热门板块涨跌</div>
+                        <div class="chart-indicator">TOP 10</div>
+                    </div>
+                    <div class="chart-body">
+                        <canvas id="sectorChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <div class="chart-title">资金流向</div>
+                        <div class="chart-indicator">5日</div>
+                    </div>
+                    <div class="chart-body">
+                        <canvas id="moneyFlowChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <div class="chart-title">热点概念</div>
+                        <div class="chart-indicator">涨幅排行</div>
+                    </div>
+                    <div class="chart-body">
+                        <canvas id="hotConceptChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 核心资产配置可视化（默认隐藏） -->
+            <div class="viz-content asset-allocation" id="allocationViz" style="display: none;">
+                <div class="chart-card large">
+                    <div class="chart-header">
+                        <div class="chart-title">资产配置建议</div>
+                        <div class="chart-indicator">智能推荐</div>
+                    </div>
+                    <div class="chart-body">
+                        <canvas id="allocationPieChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <div class="chart-title">风险收益分析</div>
+                        <div class="chart-indicator">3年期</div>
+                    </div>
+                    <div class="chart-body">
+                        <canvas id="riskReturnChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <div class="chart-title">核心持仓</div>
+                        <div class="chart-indicator">建议</div>
+                    </div>
+                    <div class="chart-body">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>股票名称</th>
+                                    <th>建议配置</th>
+                                    <th>预期收益</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>贵州茅台</td>
+                                    <td>15%</td>
+                                    <td style="color: var(--accent-green);">12.5%</td>
+                                </tr>
+                                <tr>
+                                    <td>宁德时代</td>
+                                    <td>12%</td>
+                                    <td style="color: var(--accent-green);">18.3%</td>
+                                </tr>
+                                <tr>
+                                    <td>比亚迪</td>
+                                    <td>10%</td>
+                                    <td style="color: var(--accent-green);">15.7%</td>
+                                </tr>
+                                <tr>
+                                    <td>中国平安</td>
+                                    <td>8%</td>
+                                    <td style="color: var(--accent-green);">9.2%</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <div class="chart-title">行业配置占比</div>
+                        <div class="chart-indicator">推荐</div>
+                    </div>
+                    <div class="chart-body">
+                        <canvas id="industryAllocationChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Chart.js 配置
+        Chart.defaults.color = '#9ca3af';
+        Chart.defaults.borderColor = 'rgba(0, 240, 255, 0.1)';
+        Chart.defaults.font.family = "'Noto Sans SC', sans-serif";
+
+        // 当前选中的智能体
+        let currentAgent = 'stock';
+
+        // 智能体切换
+        document.querySelectorAll('.agent-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.agent-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                
+                const agent = btn.dataset.agent;
+                currentAgent = agent;
+                switchVisualization(agent);
+                updateAgentGreeting(agent);
+            });
+        });
+
+        function switchVisualization(agent) {
+            // 隐藏所有可视化
+            document.getElementById('stockAnalysisViz').style.display = 'none';
+            document.getElementById('sentimentViz').style.display = 'none';
+            document.getElementById('allocationViz').style.display = 'none';
+
+            // 显示对应可视化
+            if (agent === 'stock') {
+                document.getElementById('stockAnalysisViz').style.display = 'grid';
+                document.getElementById('vizTitle').textContent = '贵州茅台 (600519) - 个股分析';
+            } else if (agent === 'sentiment') {
+                document.getElementById('sentimentViz').style.display = 'grid';
+                document.getElementById('vizTitle').textContent = '市场热点情绪跟踪';
+                initSentimentCharts();
+            } else if (agent === 'allocation') {
+                document.getElementById('allocationViz').style.display = 'grid';
+                document.getElementById('vizTitle').textContent = '核心资产配置建议';
+                initAllocationCharts();
+            }
+        }
+
+        function updateAgentGreeting(agent) {
+            const greetings = {
+                stock: '您好！我是多维个股分析助手，可以为您提供全方位的个股深度分析，包括技术面、基本面、资金流向等多个维度。请问您想分析哪只股票？',
+                sentiment: '您好！我是热点情绪跟踪助手，专注于市场热点、板块轮动、资金流向和情绪指标分析。有什么我可以帮您的吗？',
+                allocation: '您好！我是核心资产配置助手，基于您的风险偏好和投资目标，为您提供科学的资产配置建议。请告诉我您的投资需求。'
+            };
+
+            const chatMessages = document.getElementById('chatMessages');
+            chatMessages.innerHTML = `
+                <div class="message ai">
+                    <div class="agent-tag">${document.querySelector(`[data-agent="${agent}"]`).textContent} AI</div>
+                    <div>${greetings[agent]}</div>
+                </div>
+            `;
+        }
+
+        // K线图
+        const klineCtx = document.getElementById('klineChart').getContext('2d');
+        const klineData = {
+            labels: ['01/15', '01/16', '01/17', '01/18', '01/19', '01/22', '01/23', '01/24', '01/25', '01/26'],
+            datasets: [{
+                label: '收盘价',
+                data: [1650, 1655, 1642, 1660, 1670, 1665, 1680, 1675, 1685, 1688],
+                borderColor: '#00f0ff',
+                backgroundColor: 'rgba(0, 240, 255, 0.1)',
+                borderWidth: 2,
+                tension: 0.4,
+                fill: true
+            }]
+        };
+
+        new Chart(klineCtx, {
+            type: 'line',
+            data: klineData,
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    y: {
+                        grid: { color: 'rgba(0, 240, 255, 0.05)' },
+                        ticks: { color: '#9ca3af' }
+                    },
+                    x: {
+                        grid: { display: false },
+                        ticks: { color: '#9ca3af' }
+                    }
+                }
+            }
+        });
+
+        // 股东结构图
+        const shareholderCtx = document.getElementById('shareholderChart').getContext('2d');
+        new Chart(shareholderCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['贵州茅台集团', '香港中央结算', '社保基金', '公募基金', '其他'],
+                datasets: [{
+                    data: [61.8, 12.5, 8.3, 10.2, 7.2],
+                    backgroundColor: [
+                        'rgba(0, 240, 255, 0.8)',
+                        'rgba(0, 102, 255, 0.8)',
+                        'rgba(139, 92, 246, 0.8)',
+                        'rgba(0, 255, 136, 0.8)',
+                        'rgba(255, 51, 102, 0.8)'
+                    ],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: { 
+                            color: '#9ca3af',
+                            padding: 10,
+                            font: { size: 10 }
+                        }
+                    }
+                }
+            }
+        });
+
+        // 财报指标图
+        const financialCtx = document.getElementById('financialChart').getContext('2d');
+        new Chart(financialCtx, {
+            type: 'bar',
+            data: {
+                labels: ['Q1', 'Q2', 'Q3', 'Q4'],
+                datasets: [{
+                    label: '营收(亿)',
+                    data: [340, 385, 420, 468],
+                    backgroundColor: 'rgba(0, 240, 255, 0.6)',
+                    borderColor: '#00f0ff',
+                    borderWidth: 1
+                }, {
+                    label: '净利润(亿)',
+                    data: [170, 195, 215, 238],
+                    backgroundColor: 'rgba(0, 255, 136, 0.6)',
+                    borderColor: '#00ff88',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top',
+                        labels: { 
+                            color: '#9ca3af',
+                            font: { size: 10 }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        grid: { color: 'rgba(0, 240, 255, 0.05)' },
+                        ticks: { color: '#9ca3af' }
+                    },
+                    x: {
+                        grid: { display: false },
+                        ticks: { color: '#9ca3af' }
+                    }
+                }
+            }
+        });
+
+        // 初始化情绪跟踪图表
+        function initSentimentCharts() {
+            // 市场情绪指数
+            const sentimentIndexCtx = document.getElementById('sentimentIndexChart').getContext('2d');
+            new Chart(sentimentIndexCtx, {
+                type: 'line',
+                data: {
+                    labels: ['周一', '周二', '周三', '周四', '周五'],
+                    datasets: [{
+                        label: '情绪指数',
+                        data: [45, 52, 68, 75, 82],
+                        borderColor: '#00ff88',
+                        backgroundColor: 'rgba(0, 255, 136, 0.1)',
+                        borderWidth: 3,
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: {
+                            min: 0,
+                            max: 100,
+                            grid: { color: 'rgba(0, 240, 255, 0.05)' },
+                            ticks: { color: '#9ca3af' }
+                        },
+                        x: {
+                            grid: { display: false },
+                            ticks: { color: '#9ca3af' }
+                        }
+                    }
+                }
+            });
+
+            // 板块涨跌
+            const sectorCtx = document.getElementById('sectorChart').getContext('2d');
+            new Chart(sectorCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['新能源', '半导体', '人工智能', '医药', '消费', '金融'],
+                    datasets: [{
+                        label: '涨跌幅(%)',
+                        data: [5.2, 3.8, 6.5, -1.2, 2.1, 0.8],
+                        backgroundColor: function(context) {
+                            const value = context.parsed.y;
+                            return value >= 0 ? 'rgba(0, 255, 136, 0.8)' : 'rgba(255, 51, 102, 0.8)';
+                        }
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    indexAxis: 'y',
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: {
+                            grid: { color: 'rgba(0, 240, 255, 0.05)' },
+                            ticks: { color: '#9ca3af' }
+                        },
+                        y: {
+                            grid: { display: false },
+                            ticks: { color: '#9ca3af' }
+                        }
+                    }
+                }
+            });
+
+            // 资金流向
+            const moneyFlowCtx = document.getElementById('moneyFlowChart').getContext('2d');
+            new Chart(moneyFlowCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['周一', '周二', '周三', '周四', '周五'],
+                    datasets: [{
+                        label: '主力资金(亿)',
+                        data: [125, -86, 158, 203, 178],
+                        backgroundColor: function(context) {
+                            const value = context.parsed.y;
+                            return value >= 0 ? 'rgba(0, 240, 255, 0.8)' : 'rgba(255, 51, 102, 0.8)';
+                        }
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: {
+                            grid: { color: 'rgba(0, 240, 255, 0.05)' },
+                            ticks: { color: '#9ca3af' }
+                        },
+                        x: {
+                            grid: { display: false },
+                            ticks: { color: '#9ca3af' }
+                        }
+                    }
+                }
+            });
+
+            // 热点概念
+            const hotConceptCtx = document.getElementById('hotConceptChart').getContext('2d');
+            new Chart(hotConceptCtx, {
+                type: 'radar',
+                data: {
+                    labels: ['AI应用', '芯片', '新能源车', 'CPO', '机器人', '算力'],
+                    datasets: [{
+                        label: '热度指数',
+                        data: [95, 82, 88, 75, 68, 90],
+                        borderColor: '#00f0ff',
+                        backgroundColor: 'rgba(0, 240, 255, 0.2)',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        r: {
+                            grid: { color: 'rgba(0, 240, 255, 0.1)' },
+                            angleLines: { color: 'rgba(0, 240, 255, 0.1)' },
+                            pointLabels: { color: '#9ca3af', font: { size: 10 } },
+                            ticks: { display: false }
+                        }
+                    }
+                }
+            });
+        }
+
+        // 初始化资产配置图表
+        function initAllocationCharts() {
+            // 资产配置饼图
+            const allocationPieCtx = document.getElementById('allocationPieChart').getContext('2d');
+            new Chart(allocationPieCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['股票', '债券', '基金', '现金', '其他'],
+                    datasets: [{
+                        data: [45, 25, 20, 7, 3],
+                        backgroundColor: [
+                            'rgba(0, 240, 255, 0.8)',
+                            'rgba(0, 102, 255, 0.8)',
+                            'rgba(139, 92, 246, 0.8)',
+                            'rgba(0, 255, 136, 0.8)',
+                            'rgba(255, 51, 102, 0.8)'
+                        ],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                            labels: { 
+                                color: '#9ca3af',
+                                padding: 15,
+                                font: { size: 12 }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // 风险收益分析
+            const riskReturnCtx = document.getElementById('riskReturnChart').getContext('2d');
+            new Chart(riskReturnCtx, {
+                type: 'scatter',
+                data: {
+                    datasets: [{
+                        label: '推荐组合',
+                        data: [{x: 12, y: 15.5}],
+                        backgroundColor: 'rgba(0, 255, 136, 0.8)',
+                        pointRadius: 8
+                    }, {
+                        label: '当前组合',
+                        data: [{x: 18, y: 12.2}],
+                        backgroundColor: 'rgba(255, 51, 102, 0.8)',
+                        pointRadius: 8
+                    }, {
+                        label: '市场平均',
+                        data: [{x: 15, y: 10.8}],
+                        backgroundColor: 'rgba(0, 240, 255, 0.8)',
+                        pointRadius: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: { 
+                                color: '#9ca3af',
+                                font: { size: 10 }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: { display: true, text: '风险(%)', color: '#9ca3af' },
+                            grid: { color: 'rgba(0, 240, 255, 0.05)' },
+                            ticks: { color: '#9ca3af' }
+                        },
+                        y: {
+                            title: { display: true, text: '收益(%)', color: '#9ca3af' },
+                            grid: { color: 'rgba(0, 240, 255, 0.05)' },
+                            ticks: { color: '#9ca3af' }
+                        }
+                    }
+                }
+            });
+
+            // 行业配置
+            const industryAllocationCtx = document.getElementById('industryAllocationChart').getContext('2d');
+            new Chart(industryAllocationCtx, {
+                type: 'polarArea',
+                data: {
+                    labels: ['科技', '消费', '医药', '金融', '制造', '能源'],
+                    datasets: [{
+                        data: [25, 20, 15, 18, 12, 10],
+                        backgroundColor: [
+                            'rgba(0, 240, 255, 0.6)',
+                            'rgba(0, 102, 255, 0.6)',
+                            'rgba(139, 92, 246, 0.6)',
+                            'rgba(0, 255, 136, 0.6)',
+                            'rgba(255, 51, 102, 0.6)',
+                            'rgba(255, 193, 7, 0.6)'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: { 
+                                color: '#9ca3af',
+                                font: { size: 10 }
+                            }
+                        }
+                    },
+                    scales: {
+                        r: {
+                            grid: { color: 'rgba(0, 240, 255, 0.1)' },
+                            ticks: { display: false }
+                        }
+                    }
+                }
+            });
+        }
+
+        // 聊天功能
+        const chatInput = document.getElementById('chatInput');
+        const sendBtn = document.getElementById('sendBtn');
+        const chatMessages = document.getElementById('chatMessages');
+
+        function sendMessage() {
+            const message = chatInput.value.trim();
+            if (!message) return;
+
+            // 添加用户消息
+            const userMsg = document.createElement('div');
+            userMsg.className = 'message user';
+            userMsg.textContent = message;
+            chatMessages.appendChild(userMsg);
+
+            // 清空输入
+            chatInput.value = '';
+
+            // 模拟AI回复
+            setTimeout(() => {
+                const agentNames = {
+                    stock: '多维个股分析',
+                    sentiment: '热点情绪跟踪',
+                    allocation: '核心资产配置'
+                };
+
+                const responses = {
+                    stock: '根据技术分析，该股票当前处于上升通道中，MACD指标显示多头排列，建议持续关注。从基本面看，公司业绩稳健增长，ROE保持在20%以上。',
+                    sentiment: '当前市场情绪偏向乐观，主力资金持续流入新能源和AI板块。建议关注资金流向变化，适时调整仓位。',
+                    allocation: '基于您的风险偏好，建议股票配置比例45%，债券25%，基金20%。核心持仓可以重点配置白酒、新能源等核心资产。'
+                };
+
+                const aiMsg = document.createElement('div');
+                aiMsg.className = 'message ai';
+                aiMsg.innerHTML = `
+                    <div class="agent-tag">${agentNames[currentAgent]} AI</div>
+                    <div>${responses[currentAgent]}</div>
+                `;
+                chatMessages.appendChild(aiMsg);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }, 800);
+
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        sendBtn.addEventListener('click', sendMessage);
+        chatInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendMessage();
+        });
+
+        // 更新时间
+        setInterval(() => {
+            const now = new Date();
+            const timeStr = now.toLocaleString('zh-CN', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: false
+            });
+            document.querySelector('.header-status span:last-child').textContent = timeStr;
+        }, 1000);
+    </script>
+</body>
+</html>

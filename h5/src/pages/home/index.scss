@@ -1,0 +1,339 @@
+/**
+ * 首页样式
+ */
+@use '@/styles/variables.scss' as *;
+
+.home-page {
+  min-height: 100vh;
+  background: linear-gradient(180deg, #FFF5F7 0%, $bg-page 30%);
+
+  // 顶部搜索栏
+  .home-header {
+    padding: $spacing-base $spacing-base $spacing-base $spacing-base;
+    background: var(--primary-gradient);
+
+    .search-bar {
+      display: flex;
+      align-items: center;
+      padding: 10px $spacing-lg;
+      background: var(--bg-overlay);
+      border-radius: 20px;
+      cursor: pointer;
+      box-shadow: var(--shadow-md);
+
+      .search-icon {
+        margin-right: $spacing-sm;
+        font-size: $font-size-base;
+      }
+
+      .search-placeholder {
+        color: $text-tertiary;
+        font-size: $font-size-sm;
+      }
+    }
+  }
+
+  // 公告轮播
+  .notice-section {
+    padding: 0 $spacing-base;
+    margin-top: -20px;
+
+    .notice-swiper {
+      --height: 44px;
+      border-radius: $radius-sm;
+      overflow: hidden;
+    }
+
+    .notice-card {
+      display: flex;
+      align-items: center;
+      padding: 10px $spacing-lg;
+      height: 44px;
+      font-size: $font-size-sm;
+      color: $text-inverse;
+
+      &.notice-activity {
+        background: var(--primary-gradient);
+      }
+
+      &.notice-warning {
+        background: linear-gradient(135deg, $warning-color, #ffc53d);
+        color: #333;
+      }
+
+      &.notice-info {
+        background: linear-gradient(135deg, $info-color, #69c0ff);
+      }
+
+      .notice-icon {
+        margin-right: $spacing-sm;
+        font-size: $font-size-base;
+      }
+
+      .notice-text {
+        flex: 1;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+    }
+  }
+
+  // 快捷入口
+  .quick-entry {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: $spacing-md;
+    padding: $spacing-xl $spacing-base;
+    background: $bg-card;
+    border-radius: $radius-lg;
+    margin: $spacing-base;
+    box-shadow: var(--shadow-sm);
+
+    .entry-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: $spacing-sm;
+      cursor: pointer;
+
+      .entry-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: $radius-md;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+        box-shadow: var(--shadow-sm);
+      }
+
+      .entry-title {
+        font-size: $font-size-sm;
+        color: $text-primary;
+      }
+    }
+  }
+
+  // Tab 样式
+  .home-tabs {
+    background: $bg-card;
+    border-radius: $radius-lg $radius-lg 0 0;
+    margin-top: $spacing-sm;
+
+    :global(.adm-tabs-tab) {
+      font-weight: $font-weight-medium;
+    }
+
+    .tab-content {
+      padding: $spacing-base;
+      min-height: 300px;
+    }
+  }
+
+  // 加载状态
+  .loading-list {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-md;
+  }
+
+  // 列表样式
+  .event-list,
+  .release-list {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-md;
+  }
+
+  .event-card,
+  .release-card {
+    margin-bottom: 0;
+    border-radius: $radius-md;
+    overflow: hidden;
+    background: $bg-card;
+    box-shadow: var(--shadow-sm);
+
+    .event-cover,
+    .release-image {
+      width: 100%;
+      height: 160px;
+      object-fit: cover;
+    }
+
+    .event-info,
+    .release-info {
+      padding: $spacing-md;
+
+      .event-title,
+      .release-title {
+        font-size: $font-size-md;
+        font-weight: $font-weight-semibold;
+        color: $text-primary;
+        margin-bottom: $spacing-sm;
+        @include text-ellipsis;
+      }
+
+      .event-meta {
+        display: flex;
+        flex-direction: column;
+        gap: $spacing-xs;
+        margin-bottom: $spacing-sm;
+
+        .meta-item {
+          display: flex;
+          align-items: center;
+          gap: $spacing-xs;
+          font-size: $font-size-sm;
+          color: $text-secondary;
+        }
+      }
+
+      .release-price {
+        display: flex;
+        align-items: center;
+        gap: $spacing-sm;
+        margin-bottom: $spacing-sm;
+
+        .current-price {
+          font-size: $font-size-xl;
+          font-weight: $font-weight-bold;
+          color: $primary-color;
+        }
+
+        .original-price {
+          font-size: $font-size-sm;
+          color: $text-tertiary;
+          text-decoration: line-through;
+        }
+      }
+
+      .release-date {
+        display: flex;
+        align-items: center;
+        gap: $spacing-xs;
+        font-size: $font-size-sm;
+        color: $text-secondary;
+      }
+    }
+
+    .release-item {
+      display: flex;
+
+      .release-image {
+        width: 100px;
+        height: 100px;
+        border-radius: $radius-sm;
+        object-fit: cover;
+      }
+
+      .release-info {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+      }
+    }
+
+    .status-tag,
+    .release-status {
+      align-self: flex-start;
+    }
+  }
+
+  // 商品网格
+  .product-grid,
+  .loading-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: $spacing-md;
+  }
+
+  .product-card {
+    border-radius: $radius-md;
+    overflow: hidden;
+    padding: 0;
+    background: $bg-card;
+    box-shadow: var(--shadow-sm);
+
+    :global(.adm-card-body) {
+      padding: 0;
+    }
+
+    .product-image {
+      width: 100%;
+      height: 150px;
+      object-fit: cover;
+    }
+
+    .product-info {
+      padding: $spacing-sm $spacing-sm $spacing-sm $spacing-sm;
+
+      .product-title {
+        font-size: $font-size-sm;
+        font-weight: $font-weight-medium;
+        color: $text-primary;
+        margin-bottom: $spacing-xs;
+        @include text-ellipsis;
+      }
+
+      .product-price-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: $spacing-xs;
+
+        .product-price {
+          font-size: $font-size-lg;
+          font-weight: $font-weight-semibold;
+          color: $primary-color;
+        }
+
+        .commission-tag {
+          font-size: 10px;
+        }
+      }
+
+      .product-tags {
+        display: flex;
+        gap: $spacing-xs;
+        flex-wrap: wrap;
+
+        .tag-item {
+          font-size: 10px;
+          padding: 2px 6px;
+          background: $bg-page;
+          border-radius: $radius-xs;
+          color: $text-secondary;
+        }
+      }
+    }
+  }
+
+  // 查看更多
+  .view-more {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: $spacing-xs;
+    padding: $spacing-lg;
+    color: $primary-color;
+    font-size: $font-size-base;
+    cursor: pointer;
+  }
+
+  // 活动标签
+  .event-tags {
+    display: flex;
+    gap: $spacing-xs;
+    flex-wrap: wrap;
+
+    .tag-item {
+      font-size: 10px;
+      padding: 2px 6px;
+      background: #FFF0F3;
+      border-radius: $radius-xs;
+      color: $primary-color;
+    }
+  }
+}

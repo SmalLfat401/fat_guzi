@@ -1,0 +1,193 @@
+/**
+ * 全局样式变量 - 主题配置中心
+ * 所有页面和组件都应该引用此文件中的变量
+ */
+
+/* ==================== 主题色 ==================== */
+:root {
+  /* 主色调 */
+  --primary-color: #FF6B9D;
+  --primary-gradient: linear-gradient(135deg, #FF6B9D, #FFB6C8);
+  --primary-light: #FFB6C8;
+  --primary-dark: #E85A8A;
+
+  /* 辅助色 */
+  --success-color: #52c41a;
+  --warning-color: #faad14;
+  --danger-color: #f5222d;
+  --info-color: #1890ff;
+
+  /* 渐变色 */
+  --gradient-pink: linear-gradient(135deg, #FF6B9D, #FFB6C8);
+  --gradient-blue: linear-gradient(135deg, #36D1DC, #5B86E5);
+  --gradient-purple: linear-gradient(135deg, #F093FB, #F5576C);
+  --gradient-orange: linear-gradient(135deg, #FEE140, #FA709A);
+
+  /* ==================== 文字颜色 ==================== */
+  --text-primary: #1a1a1a;
+  --text-secondary: #666666;
+  --text-tertiary: #999999;
+  --text-disabled: #cccccc;
+  --text-inverse: #ffffff;
+
+  /* ==================== 背景颜色 ==================== */
+  --bg-page: #f7f8fa;
+  --bg-card: #ffffff;
+  --bg-primary: #FF6B9D;
+  --bg-mask: rgba(0, 0, 0, 0.5);
+  --bg-overlay: rgba(255, 255, 255, 0.95);
+
+  /* ==================== 边框颜色 ==================== */
+  --border-color: #eeeeee;
+  --border-light: #f5f5f5;
+  --border-dark: #dddddd;
+
+  /* ==================== 圆角 ==================== */
+  --radius-xs: 4px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --radius-round: 50%;
+  --radius-full: 9999px;
+
+  /* ==================== 字体大小 ==================== */
+  --font-size-xs: 10px;
+  --font-size-sm: 12px;
+  --font-size-base: 14px;
+  --font-size-md: 15px;
+  --font-size-lg: 16px;
+  --font-size-xl: 18px;
+  --font-size-2xl: 20px;
+  --font-size-3xl: 24px;
+  --font-size-4xl: 28px;
+
+  /* ==================== 字体粗细 ==================== */
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  /* ==================== 间距 ==================== */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 12px;
+  --spacing-base: 16px;
+  --spacing-lg: 20px;
+  --spacing-xl: 24px;
+  --spacing-2xl: 32px;
+
+  /* ==================== 阴影 ==================== */
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.08);
+  --shadow-md: 0 2px 12px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.12);
+  --shadow-xl: 0 8px 24px rgba(0, 0, 0, 0.15);
+
+  /* ==================== 动画 ==================== */
+  --transition-fast: 0.15s ease;
+  --transition-normal: 0.25s ease;
+  --transition-slow: 0.35s ease;
+
+  /* ==================== 布局 ==================== */
+  --nav-height: 46px;
+  --tabbar-height: 50px;
+  --safe-area-bottom: env(safe-area-inset-bottom);
+}
+
+/* ==================== SCSS 变量（供 SCSS 文件使用） ==================== */
+$primary-color: #FF6B9D;
+$primary-light: #FFB6C8;
+$primary-dark: #E85A8A;
+
+$success-color: #52c41a;
+$warning-color: #faad14;
+$danger-color: #f5222d;
+$info-color: #1890ff;
+
+$text-primary: #1a1a1a;
+$text-secondary: #666666;
+$text-tertiary: #999999;
+$text-disabled: #cccccc;
+$text-inverse: #ffffff;
+
+$bg-page: #f7f8fa;
+$bg-card: #ffffff;
+
+$border-color: #eeeeee;
+$border-light: #f5f5f5;
+$border-dark: #dddddd;
+
+$radius-xs: 4px;
+$radius-sm: 8px;
+$radius-md: 12px;
+$radius-lg: 16px;
+$radius-xl: 24px;
+$radius-round: 50%;
+$radius-full: 9999px;
+
+$font-size-xs: 10px;
+$font-size-sm: 12px;
+$font-size-base: 14px;
+$font-size-md: 15px;
+$font-size-lg: 16px;
+$font-size-xl: 18px;
+$font-size-2xl: 20px;
+$font-size-3xl: 24px;
+$font-size-4xl: 28px;
+
+$font-weight-normal: 400;
+$font-weight-medium: 500;
+$font-weight-semibold: 600;
+$font-weight-bold: 700;
+
+$spacing-xs: 4px;
+$spacing-sm: 8px;
+$spacing-md: 12px;
+$spacing-base: 16px;
+$spacing-lg: 20px;
+$spacing-xl: 24px;
+$spacing-2xl: 32px;
+
+$nav-height: 46px;
+$tabbar-height: 50px;
+
+/* ==================== Mixins 工具函数 ==================== */
+@mixin flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@mixin flex-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+@mixin text-ellipsis {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@mixin text-ellipsis-2 {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@mixin card {
+  background: $bg-card;
+  border-radius: $radius-md;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+@mixin primary-gradient {
+  background: linear-gradient(135deg, $primary-color, $primary-light);
+}
+
+@mixin safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}
