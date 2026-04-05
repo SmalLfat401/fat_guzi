@@ -13,6 +13,7 @@ export default defineConfig({
     preprocessorOptions: {
       scss: {
         silenceDeprecations: ['legacy-js-api', 'color-functions', 'global-builtin'],
+        additionalData: `@use "${resolve(__dirname, 'src')}/styles/variables.scss" as *;`,
       },
     },
   },

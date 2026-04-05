@@ -2,11 +2,14 @@
 Application state for sharing global resources.
 """
 from typing import Optional, List, Dict, Any
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 from enum import Enum
 import threading
 import json
 import os
+
+# 北京时区（UTC+8），确保不管容器时区如何都正确
+BEIJING_TZ = timezone(timedelta(hours=8))
 
 # 任务状态持久化文件路径（已废弃，使用数据库）
 from app.config.settings import settings as _settings
@@ -322,7 +325,7 @@ class WeiboCrawlerTaskState:
             self._target_uids = list(target_uids) if target_uids else []
             self._stats = CrawlerStats()
             self._stats.start_task(total_users)
-            self._started_at = datetime.utcnow()
+            self._started_at = datetime.now(BEIJING_TZ)
             self._paused_at = None
             self._paused_after_uid = None
             self._logs.clear()
@@ -331,7 +334,7 @@ class WeiboCrawlerTaskState:
                 message: str, success: bool):
         with self._lock:
             self._logs.append(
-                CrawlerLogEntry(datetime.utcnow(), uid, nickname,
+                CrawlerLogEntry(datetime.now(BEIJING_TZ), uid, nickname,
                                  action, message, success)
             )
             self._stats._log_count += 1
@@ -342,7 +345,7 @@ class WeiboCrawlerTaskState:
         with self._lock:
             if self._status == CrawlerTaskStatus.RUNNING:
                 self._status = CrawlerTaskStatus.PAUSED
-                self._paused_at = datetime.utcnow()
+                self._paused_at = datetime.now(BEIJING_TZ)
 
     def resume(self):
         with self._lock:

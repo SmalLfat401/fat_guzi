@@ -4,7 +4,7 @@
  * 1. 活动公告轮播
  * 2. 活动日历（即将到来的漫展/展会）
  * 3. 谷子上新日历
- * 4. 热门分佣商品
+ * 4. 热门好物推荐
  */
 import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -124,7 +124,7 @@ const HomePage: React.FC = () => {
           <div className="entry-icon" style={{ background: 'linear-gradient(135deg, #F093FB, #F5576C)' }}>
             🛍️
           </div>
-          <span className="entry-title">分佣好物</span>
+          <span className="entry-title">精选好物</span>
         </div>
         <div className="entry-item" onClick={() => navigate('/profile')}>
           <div className="entry-icon" style={{ background: 'linear-gradient(135deg, #FEE140, #FA709A)' }}>
@@ -253,7 +253,7 @@ const HomePage: React.FC = () => {
           </div>
         </Tabs.Tab>
 
-        <Tabs.Tab title="🛍️ 热门分佣" key="products">
+        <Tabs.Tab title="🛍️ 热门好物" key="products">
           <div className="tab-content">
             {loading ? (
               <div className="loading-grid">
@@ -278,10 +278,8 @@ const HomePage: React.FC = () => {
                       <h4 className="product-title">{product.name}</h4>
                       <div className="product-price-row">
                         <span className="product-price">¥{product.price}</span>
-                        {product.isCommission && (
-                          <Tag color="#FF6B9D" className="commission-tag">
-                            赚¥{product.commissionAmount}
-                          </Tag>
+                        {product.originalPrice && (
+                          <span className="original-price">¥{product.originalPrice}</span>
                         )}
                       </div>
                       {product.tags && product.tags.length > 0 && (

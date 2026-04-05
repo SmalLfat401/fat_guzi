@@ -1,0 +1,297 @@
+
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --pink: #ED93B1; --pink-light: #FBEAF0; --pink-mid: #D4537E; --pink-dark: #4B1528;
+  --amber: #EF9F27; --amber-light: #FAEEDA; --amber-mid: #BA7517;
+  --teal: #1D9E75; --teal-light: #E1F5EE; --teal-mid: #0F6E56;
+  --purple: #7F77DD; --purple-light: #EEEDFE; --purple-mid: #534AB7;
+  --gray-bg: #F8F6F3; --gray-border: rgba(0,0,0,0.1); --text: var(--color-text-primary); --text-s: var(--color-text-secondary);
+}
+.phone {
+  max-width: 390px; margin: 0 auto; background: var(--color-background-primary);
+  border: 0.5px solid var(--color-border-tertiary); border-radius: 36px;
+  overflow: hidden; padding: 0 0 24px;
+  font-family: var(--font-sans);
+}
+.status-bar {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 14px 24px 6px; font-size: 12px; font-weight: 500; color: var(--text-s);
+}
+.header { padding: 4px 20px 0; }
+.header-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.header-title { font-size: 22px; font-weight: 500; color: var(--text); }
+.header-sub { font-size: 13px; color: var(--text-s); margin-top: 2px; }
+.mode-toggle {
+  display: flex; background: var(--color-background-secondary); border-radius: 20px; padding: 3px;
+}
+.mode-btn {
+  padding: 5px 14px; border-radius: 16px; font-size: 12px; font-weight: 500; cursor: pointer;
+  border: none; background: transparent; color: var(--text-s); transition: all 0.2s;
+}
+.mode-btn.active { background: var(--color-background-primary); color: var(--text); box-shadow: 0 1px 3px rgba(0,0,0,0.12); }
+.filter-row {
+  display: flex; gap: 6px; padding: 10px 20px; overflow-x: auto;
+  scrollbar-width: none;
+}
+.filter-row::-webkit-scrollbar { display: none; }
+.tag {
+  padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 500; white-space: nowrap;
+  cursor: pointer; border: 1.5px solid transparent; transition: all 0.15s;
+}
+.tag.all { background: var(--text); color: var(--color-background-primary); }
+.tag.expo { background: var(--purple-light); color: var(--purple-mid); border-color: var(--purple-light); }
+.tag.expo.active { border-color: var(--purple-mid); }
+.tag.merch { background: var(--pink-light); color: var(--pink-mid); border-color: var(--pink-light); }
+.tag.merch.active { border-color: var(--pink-mid); }
+.tag.sale { background: var(--amber-light); color: var(--amber-mid); border-color: var(--amber-light); }
+.tag.sale.active { border-color: var(--amber-mid); }
+
+.cal-nav {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 6px 20px 4px;
+}
+.cal-nav-btn { background: none; border: none; font-size: 18px; cursor: pointer; color: var(--text-s); padding: 4px 8px; }
+.cal-month { font-size: 15px; font-weight: 500; color: var(--text); }
+.cal-grid { padding: 0 16px; }
+.cal-weekdays {
+  display: grid; grid-template-columns: repeat(7, 1fr); text-align: center;
+  font-size: 11px; color: var(--text-s); padding: 4px 0; font-weight: 500;
+}
+.cal-days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+.cal-day {
+  aspect-ratio: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  border-radius: 50%; cursor: pointer; position: relative; transition: background 0.15s;
+  font-size: 13px; color: var(--text);
+}
+.cal-day:hover { background: var(--color-background-secondary); }
+.cal-day.other-month { color: var(--text-s); opacity: 0.4; }
+.cal-day.today { font-weight: 500; background: var(--text); color: var(--color-background-primary); border-radius: 50%; }
+.cal-day.selected { background: var(--pink-mid); color: #fff; border-radius: 50%; }
+.cal-day.today.selected { background: var(--pink-mid); }
+.dot-row { display: flex; gap: 2px; position: absolute; bottom: 2px; justify-content: center; }
+.dot { width: 4px; height: 4px; border-radius: 50%; }
+.dot.expo { background: var(--purple); }
+.dot.merch { background: var(--pink-mid); }
+.dot.sale { background: var(--amber); }
+.divider { height: 0.5px; background: var(--color-border-tertiary); margin: 10px 20px 0; }
+.day-label {
+  padding: 10px 20px 4px; font-size: 12px; font-weight: 500; color: var(--text-s); letter-spacing: 0.04em;
+}
+.event-list { padding: 0 16px; display: flex; flex-direction: column; gap: 8px; }
+.event-card {
+  display: flex; gap: 10px; padding: 10px 12px; border-radius: 14px;
+  border: 0.5px solid var(--color-border-tertiary); background: var(--color-background-primary);
+  cursor: pointer; transition: all 0.15s; align-items: flex-start;
+}
+.event-card:hover { background: var(--color-background-secondary); }
+.event-icon {
+  width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center;
+  justify-content: center; font-size: 16px; flex-shrink: 0; margin-top: 1px;
+}
+.event-icon.expo { background: var(--purple-light); }
+.event-icon.merch { background: var(--pink-light); }
+.event-icon.sale { background: var(--amber-light); }
+.event-body { flex: 1; min-width: 0; }
+.event-name { font-size: 14px; font-weight: 500; color: var(--text); line-height: 1.3; margin-bottom: 3px; }
+.event-meta { font-size: 12px; color: var(--text-s); display: flex; gap: 6px; align-items: center; }
+.event-tag {
+  font-size: 10px; font-weight: 500; padding: 2px 7px; border-radius: 8px;
+}
+.event-tag.expo { background: var(--purple-light); color: var(--purple-mid); }
+.event-tag.merch { background: var(--pink-light); color: var(--pink-mid); }
+.event-tag.sale { background: var(--amber-light); color: var(--amber-mid); }
+.event-arrow { font-size: 14px; color: var(--text-s); margin-top: 10px; flex-shrink: 0; }
+.empty { text-align: center; padding: 24px 0; color: var(--text-s); font-size: 13px; }
+.list-section { padding: 0 16px; }
+.list-date-header {
+  padding: 10px 4px 6px; font-size: 12px; font-weight: 500; color: var(--text-s);
+  letter-spacing: 0.05em; display: flex; align-items: center; gap: 6px;
+}
+.list-today-badge {
+  background: var(--text); color: var(--color-background-primary);
+  font-size: 10px; padding: 1px 6px; border-radius: 8px;
+}
+.cal-view, .list-view { display: none; }
+.cal-view.active, .list-view.active { display: block; }
+</style>
+
+<div class="phone">
+  <div class="status-bar">
+    <span>9:41</span>
+    <span style="display:flex;gap:4px;align-items:center;">
+      <svg width="15" height="11" viewBox="0 0 15 11"><rect x="0" y="4" width="3" height="7" rx="1" fill="currentColor" opacity="0.4"/><rect x="4" y="2.5" width="3" height="8.5" rx="1" fill="currentColor" opacity="0.6"/><rect x="8" y="1" width="3" height="10" rx="1" fill="currentColor" opacity="0.8"/><rect x="12" y="0" width="3" height="11" rx="1" fill="currentColor"/></svg>
+      <svg width="16" height="12" viewBox="0 0 16 12"><path d="M8 2.5 C5.5 2.5 3.2 3.5 1.5 5.2L0 3.7C2.1 1.4 5 0 8 0s5.9 1.4 8 3.7L14.5 5.2C12.8 3.5 10.5 2.5 8 2.5z" fill="currentColor" opacity="0.4"/><path d="M8 5C6.3 5 4.8 5.7 3.7 6.8L2.2 5.3C3.7 3.9 5.7 3 8 3s4.3.9 5.8 2.3L12.3 6.8C11.2 5.7 9.7 5 8 5z" fill="currentColor" opacity="0.7"/><circle cx="8" cy="10" r="2" fill="currentColor"/></svg>
+      <svg width="25" height="12" viewBox="0 0 25 12"><rect x="0" y="1" width="22" height="10" rx="2.5" stroke="currentColor" stroke-width="1" fill="none" opacity="0.35"/><rect x="1.5" y="2.5" width="17" height="7" rx="1.5" fill="currentColor"/><rect x="23" y="4" width="2" height="4" rx="1" fill="currentColor" opacity="0.4"/></svg>
+    </span>
+  </div>
+
+  <div class="header">
+    <div class="header-top">
+      <div>
+        <div class="header-title">活动日历</div>
+        <div class="header-sub">会展 · 谷子预告</div>
+      </div>
+      <div class="mode-toggle">
+        <button class="mode-btn active" id="btn-cal" onclick="setMode('cal')">日历</button>
+        <button class="mode-btn" id="btn-list" onclick="setMode('list')">列表</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="filter-row">
+    <span class="tag all" id="tag-all" onclick="setFilter('all')">全部</span>
+    <span class="tag expo" id="tag-expo" onclick="setFilter('expo')">🏛 会展活动</span>
+    <span class="tag merch" id="tag-merch" onclick="setFilter('merch')">🎀 谷子上新</span>
+    <span class="tag sale" id="tag-sale" onclick="setFilter('sale')">🔥 限时特卖</span>
+  </div>
+
+  <div class="cal-view active" id="cal-view">
+    <div class="cal-nav">
+      <button class="cal-nav-btn" onclick="changeMonth(-1)">‹</button>
+      <span class="cal-month" id="cal-month-label"></span>
+      <button class="cal-nav-btn" onclick="changeMonth(1)">›</button>
+    </div>
+    <div class="cal-grid">
+      <div class="cal-weekdays">
+        <div>日</div><div>一</div><div>二</div><div>三</div><div>四</div><div>五</div><div>六</div>
+      </div>
+      <div class="cal-days" id="cal-days"></div>
+    </div>
+    <div class="divider"></div>
+    <div class="day-label" id="day-label"></div>
+    <div class="event-list" id="cal-events"></div>
+  </div>
+
+  <div class="list-view" id="list-view">
+    <div class="list-section" id="list-events"></div>
+  </div>
+</div>
+
+<script>
+const EVENTS = [
+  { id:1, date:'2026-04-01', type:'expo', icon:'🏛', name:'2026 ComicWorld 春季展', venue:'上海世博展览馆', time:'10:00–18:00', badge:'进行中' },
+  { id:2, date:'2026-04-01', type:'merch', icon:'🎀', name:'Re:Zero × 猫咖 联名谷子首发', venue:'线上官方店 & B站', time:'12:00 开售', badge:'今日上新' },
+  { id:3, date:'2026-04-03', type:'merch', icon:'🎀', name:'《葬送的芙莉莲》第二弹徽章', venue:'Animate 全系列', time:'11:00 开售', badge:'预告' },
+  { id:4, date:'2026-04-05', type:'expo', icon:'🏛', name:'ACG·北京联合嘉年华', venue:'国家会议中心', time:'09:30–17:30', badge:'预售' },
+  { id:5, date:'2026-04-05', type:'sale', icon:'🔥', name:'春日限定！手办 5折专区', venue:'多选平台同步', time:'00:00 开始', badge:'限时' },
+  { id:6, date:'2026-04-07', type:'merch', icon:'🎀', name:'咒术回战 五条悟 立牌上新', venue:'官方旗舰店', time:'20:00 开售', badge:'预告' },
+  { id:7, date:'2026-04-10', type:'expo', icon:'🏛', name:'广州动漫星城 联动展', venue:'广州展览中心', time:'10:00–19:00', badge:'预售' },
+  { id:8, date:'2026-04-12', type:'merch', icon:'🎀', name:'蔚蓝档案 2周年 谷子全系', venue:'Lawson × 全家 便利店', time:'全天', badge:'预告' },
+  { id:9, date:'2026-04-15', type:'sale', icon:'🔥', name:'谷子节 限量礼盒抽签', venue:'抽签官网', time:'10:00–20:00', badge:'限时' },
+  { id:10, date:'2026-04-18', type:'merch', icon:'🎀', name:'《BLEACH》千年血战 扭蛋登场', venue:'全国商场扭蛋机', time:'全天上架', badge:'预告' },
+  { id:11, date:'2026-04-20', type:'expo', icon:'🏛', name:'成都 CICAF 漫画艺术节', venue:'成都世纪城展览中心', time:'10:00–18:00', badge:'预售' },
+  { id:12, date:'2026-04-25', type:'merch', icon:'🎀', name:'Hololive EN 毛绒玩偶上架', venue:'官方海外商城', time:'09:00（东八区）', badge:'预告' },
+  { id:13, date:'2026-04-28', type:'sale', icon:'🔥', name:'五月劳动节 会场票 抢购', venue:'各展官方渠道', time:'20:00 开抢', badge:'限时' },
+];
+
+let curYear = 2026, curMonth = 3, selectedDay = '2026-04-01', curFilter = 'all', curMode = 'cal';
+
+function filtered(evts) {
+  return curFilter === 'all' ? evts : evts.filter(e => e.type === curFilter);
+}
+
+function setMode(m) {
+  curMode = m;
+  document.getElementById('cal-view').classList.toggle('active', m==='cal');
+  document.getElementById('list-view').classList.toggle('active', m==='list');
+  document.getElementById('btn-cal').classList.toggle('active', m==='cal');
+  document.getElementById('btn-list').classList.toggle('active', m==='list');
+  if(m==='list') renderList(); else renderCal();
+}
+
+function setFilter(f) {
+  curFilter = f;
+  ['all','expo','merch','sale'].forEach(t => {
+    const el = document.getElementById('tag-'+t);
+    if(t==='all') { el.style.background = f==='all' ? 'var(--text)' : 'var(--color-background-secondary)'; el.style.color = f==='all' ? 'var(--color-background-primary)' : 'var(--text-s)'; }
+    else el.classList.toggle('active', t===f);
+  });
+  if(curMode==='cal') renderCal(); else renderList();
+}
+
+function changeMonth(d) {
+  curMonth += d;
+  if(curMonth > 11) { curMonth = 0; curYear++; }
+  if(curMonth < 0) { curMonth = 11; curYear--; }
+  renderCal();
+}
+
+function selectDay(dateStr) {
+  selectedDay = dateStr;
+  renderCal();
+}
+
+function renderCal() {
+  const months = ['一月','二月','三月','四月','五月','六月','七月','八月','九月','十月','十一月','十二月'];
+  document.getElementById('cal-month-label').textContent = curYear + '年 ' + months[curMonth];
+  const first = new Date(curYear, curMonth, 1).getDay();
+  const days = new Date(curYear, curMonth+1, 0).getDate();
+  const prevDays = new Date(curYear, curMonth, 0).getDate();
+  const today = new Date(); const todayStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+  let html = '';
+  for(let i=0; i<first; i++) {
+    const d = prevDays - first + 1 + i;
+    html += `<div class="cal-day other-month">${d}</div>`;
+  }
+  for(let d=1; d<=days; d++) {
+    const ds = `${curYear}-${String(curMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const dayEvts = filtered(EVENTS.filter(e => e.date === ds));
+    const types = [...new Set(dayEvts.map(e=>e.type))];
+    const isToday = ds === todayStr, isSel = ds === selectedDay;
+    const cls = ['cal-day', isToday&&!isSel?'today':'', isSel?'selected':'', isToday&&isSel?'today':'' ].filter(Boolean).join(' ');
+    const dots = types.map(t=>`<span class="dot ${t}"></span>`).join('');
+    html += `<div class="${cls}" onclick="selectDay('${ds}')">${d}${dots?`<div class="dot-row">${dots}</div>`:''}</div>`;
+  }
+  const rem = 42 - first - days;
+  for(let d=1; d<=rem; d++) html += `<div class="cal-day other-month">${d}</div>`;
+  document.getElementById('cal-days').innerHTML = html;
+
+  const selEvts = filtered(EVENTS.filter(e => e.date === selectedDay));
+  const [sy,sm,sd] = selectedDay.split('-');
+  document.getElementById('day-label').textContent = `${sm}月${+sd}日 · ${selEvts.length ? selEvts.length+'个活动' : '暂无活动'}`;
+  if(selEvts.length === 0) {
+    document.getElementById('cal-events').innerHTML = `<div class="empty">这天暂无活动 ✦</div>`;
+  } else {
+    document.getElementById('cal-events').innerHTML = selEvts.map(e => eventCard(e)).join('');
+  }
+}
+
+function eventCard(e) {
+  return `<div class="event-card">
+    <div class="event-icon ${e.type}">${e.icon}</div>
+    <div class="event-body">
+      <div class="event-name">${e.name}</div>
+      <div class="event-meta">
+        <span>${e.time}</span>
+        <span>·</span>
+        <span>${e.venue}</span>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;margin-top:2px;">
+      <span class="event-tag ${e.type}">${e.badge}</span>
+    </div>
+  </div>`;
+}
+
+function renderList() {
+  const months = ['一月','二月','三月','四月','五月','六月','七月','八月','九月','十月','十一月','十二月'];
+  const evts = filtered(EVENTS);
+  const grouped = {};
+  evts.forEach(e => { if(!grouped[e.date]) grouped[e.date] = []; grouped[e.date].push(e); });
+  const today = new Date(); const todayStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+  let html = '';
+  const days = ['日','一','二','三','四','五','六'];
+  Object.keys(grouped).sort().forEach(date => {
+    const [y,m,d] = date.split('-');
+    const dow = days[new Date(date).getDay()];
+    const isToday = date === todayStr;
+    html += `<div class="list-date-header">${m}月${+d}日 周${dow}${isToday?'<span class="list-today-badge">今天</span>':''}</div>`;
+    html += grouped[date].map(e => eventCard(e)).join('');
+  });
+  if(!html) html = `<div class="empty" style="padding:32px 0;">暂无相关活动</div>`;
+  document.getElementById('list-events').innerHTML = html;
+}
+
+renderCal();
+</script>

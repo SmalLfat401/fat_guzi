@@ -1,35 +1,29 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { message, Modal, Alert, Radio, Space, Row, Col, Tag, Card, Timeline, Input, Select } from 'antd';
+import { message, Modal, Alert, Radio, Space, Row, Col, Tag, Card, Input, Select, Table, Button, Switch, Tooltip } from 'antd';
 import { ExclamationCircleOutlined, UserOutlined, CheckCircleOutlined, StopOutlined, LinkOutlined, UserAddOutlined, FileTextOutlined, ChromeOutlined, CloudDownloadOutlined, PlayCircleOutlined, CloseCircleOutlined, SearchOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import type { WeiboUser, WeiboUserCreate, WeiboUserUpdate } from '../types/weibo';
 import { useWeiboUsers } from '../hooks/useWeiboUsers';
 import WeiboUserModal from './WeiboUserModal';
-import { WeiboCrawlerPanel } from './WeiboCrawlerPanel';
-import { Table, Button, Switch, Tooltip } from 'antd';
+import AutomationPanel from './AutomationPanel';
+import CrawlerLogPanel from './CrawlerLogPanel';
 import { categoryApi } from '../api/category';
 import type { Category } from '../api/category';
 import { crawlerApi } from '../api/crawler';
+import type { CrawlerTaskStatus } from '../api/crawler';
 import dayjs from 'dayjs';
+
+type CrawlerMode = 'full' | 'limited' | 'specific' | 'category';
 import 'dayjs/locale/zh-cn';
 import '../styles/global.scss';
 
 dayjs.locale('zh-cn');
 
-interface CrawlLog {
-  id: string;
-  uid: string;
-  nickname: string;
-  time: string;
-  success: boolean;
-  message: string;
-  data_count?: number;
-}
-
 const WeiboUserTable: React.FC = () => {
   const { users, loading, error, total, fetchUsers, createUser, updateUser, deleteUser } = useWeiboUsers();
   const navigate = useNavigate();
+
   const [modalVisible, setModalVisible] = useState(false);
   const [editingUser, setEditingUser] = useState<WeiboUser | null>(null);
   const [isActiveFilter, setIsActiveFilter] = useState<boolean | undefined>(undefined);
@@ -37,18 +31,24 @@ const WeiboUserTable: React.FC = () => {
   const [statsTotal, setStatsTotal] = useState(0);
   const [statsActive, setStatsActive] = useState(0);
   const [statsInactive, setStatsInactive] = useState(0);
-  
-  // 爬虫状态
+
   const [chromeRunning, setChromeRunning] = useState(false);
   const [pageOpen, setPageOpen] = useState(false);
   const [crawlerLoading, setCrawlerLoading] = useState(false);
   const [crawlingUid, setCrawlingUid] = useState<string | null>(null);
-  const [crawlLogs, setCrawlLogs] = useState<CrawlLog[]>([]);
 
   const [pageInfo, setPageInfo] = useState({ page: 1, pageSize: 20 });
   const [nicknameSearch, setNicknameSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string[]>([]);
   const [searchTimer, setSearchTimer] = useState<ReturnType<typeof setTimeout> | null>(null);
+
+  // 爬虫任务状态
+  const [taskStatus, setTaskStatus] = useState<CrawlerTaskStatus | null>(null);
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [mode, setMode] = useState<CrawlerMode>('full');
+  const [limitedCount, setLimitedCount] = useState<number>(5);
+  const [targetUids, setTargetUids] = useState<string[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
   useEffect(() => {
     fetchUsers(
@@ -60,7 +60,6 @@ const WeiboUserTable: React.FC = () => {
     );
   }, [isActiveFilter, pageInfo, nicknameSearch, categoryFilter]);
 
-  // 加载统计数据
   const fetchStats = async () => {
     try {
       const { weiboUserApi } = await import('../api/weiboUser');
@@ -73,7 +72,6 @@ const WeiboUserTable: React.FC = () => {
     }
   };
 
-  // 加载浏览器状态
   const fetchBrowserStatus = async () => {
     try {
       const status = await crawlerApi.getBrowserStatus();
@@ -84,12 +82,109 @@ const WeiboUserTable: React.FC = () => {
     }
   };
 
+  const fetchCrawlerStatus = useCallback(async () => {
+    try {
+      const status = await crawlerApi.getCrawlerTaskStatus();
+      setTaskStatus(status);
+      if (status.status !== 'idle' && status.status !== undefined) {
+        if (status.mode) setMode(status.mode);
+        if (status.max_posts > 0) setLimitedCount(status.max_posts);
+        if (status.target_uids && status.target_uids.length > 0) setTargetUids(status.target_uids);
+      }
+    } catch (err) {
+      console.error('Failed to fetch crawler status:', err);
+    }
+  }, []);
+
   useEffect(() => {
     fetchStats();
     fetchBrowserStatus();
-  }, []);
+    fetchCrawlerStatus();
+  }, [fetchCrawlerStatus]);
 
-  // 加载分类数据
+  // 轮询：只在 status 真正变化时重新设置 interval，不依赖 fetchCrawlerStatus
+  const timerIdRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const prevStatusRef = useRef<string>('idle');
+
+  useEffect(() => {
+    const currentStatus = taskStatus?.status ?? 'idle';
+    const statusChanged = prevStatusRef.current !== currentStatus;
+    prevStatusRef.current = currentStatus;
+
+    // 状态变化时才重新设置 interval
+    if (statusChanged || timerIdRef.current === null) {
+      if (timerIdRef.current) {
+        clearInterval(timerIdRef.current);
+        timerIdRef.current = null;
+      }
+
+      const interval = currentStatus === 'running' || currentStatus === 'paused' || currentStatus === 'stopping'
+        ? 2000
+        : 15000;
+
+      // 立即拉取一次
+      crawlerApi.getCrawlerTaskStatus().then(status => {
+        setTaskStatus(status);
+      }).catch(console.error);
+
+      timerIdRef.current = setInterval(() => {
+        crawlerApi.getCrawlerTaskStatus().then(status => {
+          setTaskStatus(status);
+        }).catch(console.error);
+      }, interval);
+    }
+
+    return () => {
+      if (timerIdRef.current) {
+        clearInterval(timerIdRef.current);
+        timerIdRef.current = null;
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [taskStatus?.status]);
+
+  const handleCrawlerAction = async (action: 'start' | 'pause' | 'resume' | 'stop') => {
+    setActionLoading(action);
+    try {
+      let result: { success: boolean; error?: string; message?: string };
+      switch (action) {
+        case 'start':
+          if (mode === 'category' && selectedCategory) {
+            result = await crawlerApi.startCrawlerByCategory({
+              category_id: selectedCategory,
+              mode: 'full',
+              max_posts: 0,
+            });
+          } else {
+            result = await crawlerApi.startCrawlerTask({
+              mode,
+              max_posts: mode === 'limited' ? limitedCount : 0,
+              target_uids: mode === 'specific' ? targetUids : undefined,
+            });
+          }
+          break;
+        case 'pause':
+          result = await crawlerApi.pauseCrawlerTask();
+          break;
+        case 'resume':
+          result = await crawlerApi.resumeCrawlerTask();
+          break;
+        case 'stop':
+          result = await crawlerApi.stopCrawlerTask();
+          break;
+      }
+      if (!result.success) {
+        message.error(result.error || result.message || '操作失败');
+      } else {
+        await fetchCrawlerStatus();
+      }
+    } catch (err: any) {
+      message.error(err.message || '操作失败');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
   useEffect(() => {
     const fetchCategories = async () => {
       try {
@@ -102,16 +197,12 @@ const WeiboUserTable: React.FC = () => {
     fetchCategories();
   }, []);
 
-  // 根据分类ID获取分类名称
   const getCategoryNames = (categoryIds: string[] = []) => {
     return categoryIds.map(id => {
       const cat = categories.find(c => c._id === id);
       return cat ? cat.name : id;
     });
   };
-
-  const activeCount = statsActive;
-  const inactiveCount = statsInactive;
 
   const handleCreate = () => {
     setEditingUser(null);
@@ -194,7 +285,6 @@ const WeiboUserTable: React.FC = () => {
     setPageInfo({ ...pageInfo, page: 1 });
   };
 
-  // 昵称搜索（防抖）
   const handleNicknameSearch = (value: string) => {
     if (searchTimer) clearTimeout(searchTimer);
     const timer = setTimeout(() => {
@@ -204,13 +294,11 @@ const WeiboUserTable: React.FC = () => {
     setSearchTimer(timer);
   };
 
-  // 标签过滤变化
   const handleCategoryFilterChange = (values: string[]) => {
     setCategoryFilter(values);
     setPageInfo({ ...pageInfo, page: 1 });
   };
 
-  // 启动 Chrome
   const handleStartChrome = async () => {
     setCrawlerLoading(true);
     try {
@@ -228,7 +316,6 @@ const WeiboUserTable: React.FC = () => {
     }
   };
 
-  // 打开微博页面
   const handleOpenWeibo = async () => {
     setCrawlerLoading(true);
     try {
@@ -246,7 +333,6 @@ const WeiboUserTable: React.FC = () => {
     }
   };
 
-  // 关闭浏览器
   const handleCloseBrowser = async () => {
     setCrawlerLoading(true);
     try {
@@ -265,7 +351,6 @@ const WeiboUserTable: React.FC = () => {
     }
   };
 
-  // API采集
   const handleApiCrawl = async (uid: string, nickname: string) => {
     if (!chromeRunning) {
       message.warning('请先启动 Chrome 浏览器');
@@ -273,27 +358,13 @@ const WeiboUserTable: React.FC = () => {
     }
 
     setCrawlingUid(uid);
-    const logId = `${uid}_${Date.now()}`;
-
     try {
       const result = await crawlerApi.getWeiboApi(uid, 1, 0);
 
-      const newLog: CrawlLog = {
-        id: logId,
-        uid,
-        nickname,
-        time: dayjs().format('HH:mm:ss'),
-        success: result.success,
-        message: result.success ? 'API采集成功' : (result.error || 'API采集失败'),
-        data_count: result.data?.data?.list?.length || 0,
-      };
-
-      setCrawlLogs(prev => [newLog, ...prev].slice(0, 50));
-
       if (result.success) {
         message.success(`用户 ${nickname} API采集完成`);
+        fetchCrawlerStatus();
       } else {
-        // 检测登录过期
         if ((result as any).need_login) {
           Modal.warning({
             title: '登录已过期',
@@ -304,15 +375,6 @@ const WeiboUserTable: React.FC = () => {
         }
       }
     } catch (e: any) {
-      const newLog: CrawlLog = {
-        id: logId,
-        uid,
-        nickname,
-        time: dayjs().format('HH:mm:ss'),
-        success: false,
-        message: e.message || 'API采集失败',
-      };
-      setCrawlLogs(prev => [newLog, ...prev].slice(0, 50));
       message.error(e.message || 'API采集失败');
     } finally {
       setCrawlingUid(null);
@@ -410,9 +472,9 @@ const WeiboUserTable: React.FC = () => {
       fixed: 'right',
       render: (_: unknown, record: WeiboUser) => (
         <Space size="small">
-          <Button 
-            type="primary" 
-            size="small" 
+          <Button
+            type="primary"
+            size="small"
             icon={<CloudDownloadOutlined />}
             loading={crawlingUid === record.uid}
             onClick={() => handleApiCrawl(record.uid, record.nickname)}
@@ -420,9 +482,9 @@ const WeiboUserTable: React.FC = () => {
           >
             抓取
           </Button>
-          <Button 
-            type="link" 
-            size="small" 
+          <Button
+            type="link"
+            size="small"
             icon={<FileTextOutlined />}
             onClick={() => navigate(`/weibo-users/${record.uid}/posts?userIdstr=${record.uid}&nickname=${encodeURIComponent(record.nickname)}`)}
           >
@@ -437,32 +499,33 @@ const WeiboUserTable: React.FC = () => {
 
   return (
     <div className="fade-in">
-      {/* 浏览器控制 + 自动爬虫任务 并排 */}
+      {/* 浏览器控制 + 自动化功能组 + 爬虫日志 三列 */}
       <Row gutter={[16, 16]} style={{ margin: '16px 24px 0' }} align="stretch">
         {/* 浏览器控制 */}
-        <Col xs={24} md={12}>
+        <Col xs={24} md={8}>
           <Card
             size="small"
             style={{ height: '100%' }}
             title={<><ChromeOutlined /> 浏览器控制</>}
             extra={
-              <Space>
-                <Tag color={chromeRunning ? 'success' : 'default'}>
+              <Space size={4}>
+                <Tag color={chromeRunning ? 'success' : 'default'} style={{ margin: 0 }}>
                   {chromeRunning ? 'Chrome 运行中' : 'Chrome 未启动'}
                 </Tag>
-                <Tag color={pageOpen ? 'processing' : 'default'}>
+                <Tag color={pageOpen ? 'processing' : 'default'} style={{ margin: 0 }}>
                   {pageOpen ? '微博已打开' : '微博未打开'}
                 </Tag>
               </Space>
             }
           >
-            <Space style={{ marginBottom: 12 }}>
+            <Space wrap>
               <Button
                 type="primary"
                 icon={<PlayCircleOutlined />}
                 loading={crawlerLoading}
                 onClick={handleStartChrome}
                 disabled={chromeRunning}
+                size="small"
               >
                 启动Chrome
               </Button>
@@ -471,6 +534,7 @@ const WeiboUserTable: React.FC = () => {
                 loading={crawlerLoading}
                 onClick={handleOpenWeibo}
                 disabled={!chromeRunning}
+                size="small"
               >
                 打开微博
               </Button>
@@ -480,6 +544,7 @@ const WeiboUserTable: React.FC = () => {
                 loading={crawlerLoading}
                 onClick={handleCloseBrowser}
                 disabled={!chromeRunning}
+                size="small"
               >
                 关闭
               </Button>
@@ -487,9 +552,28 @@ const WeiboUserTable: React.FC = () => {
           </Card>
         </Col>
 
-        {/* 自动爬虫任务 */}
-        <Col xs={24} md={12}>
-          <WeiboCrawlerPanel />
+        {/* 自动化功能组 */}
+        <Col xs={24} md={8}>
+          <AutomationPanel
+            taskStatus={taskStatus}
+            mode={mode}
+            limitedCount={limitedCount}
+            targetUids={targetUids}
+            users={users.map(u => ({ nickname: u.nickname, uid: u.uid }))}
+            actionLoading={actionLoading}
+            onModeChange={setMode}
+            onLimitedCountChange={setLimitedCount}
+            onTargetUidsChange={setTargetUids}
+            selectedCategory={selectedCategory}
+            onSelectCategory={setSelectedCategory}
+            categories={categories}
+            onAction={handleCrawlerAction}
+          />
+        </Col>
+
+        {/* 爬虫日志 */}
+        <Col xs={24} md={8}>
+          <CrawlerLogPanel taskStatus={taskStatus} />
         </Col>
       </Row>
 
@@ -505,14 +589,14 @@ const WeiboUserTable: React.FC = () => {
         <Col xs={24} sm={8}>
           <div className="stats-card stats-success">
             <div className="stats-title">启用监控</div>
-            <div className="stats-value">{activeCount}</div>
+            <div className="stats-value">{statsActive}</div>
             <CheckCircleOutlined className="stats-icon" />
           </div>
         </Col>
         <Col xs={24} sm={8}>
           <div className="stats-card stats-warning">
             <div className="stats-title">已禁用</div>
-            <div className="stats-value">{inactiveCount}</div>
+            <div className="stats-value">{statsInactive}</div>
             <StopOutlined className="stats-icon" />
           </div>
         </Col>
@@ -580,35 +664,6 @@ const WeiboUserTable: React.FC = () => {
           size="small"
         />
       </div>
-
-      {/* 抓取日志 */}
-      {crawlLogs.length > 0 && (
-        <Card 
-          size="small" 
-          style={{ margin: '0 24px 24px' }}
-          title="抓取日志"
-        >
-          <Timeline
-            items={crawlLogs.slice(0, 10).map(log => ({
-              color: log.success ? 'green' : 'red',
-              children: (
-                <div>
-                  <span style={{ color: '#888' }}>{log.time}</span>
-                  {' '}
-                  <strong>{log.nickname}</strong>
-                  {' '}
-                  <span>{log.message}</span>
-                  {log.data_count !== undefined && (
-                    <Tag color={log.success ? 'green' : 'red'} style={{ marginLeft: 8 }}>
-                      {log.data_count} 条
-                    </Tag>
-                  )}
-                </div>
-              ),
-            }))}
-          />
-        </Card>
-      )}
 
       <WeiboUserModal
         visible={modalVisible}

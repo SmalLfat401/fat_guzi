@@ -6,32 +6,30 @@
 .product-detail-page {
   min-height: 100vh;
   background: $bg-page;
-  padding-bottom: calc(70px + env(safe-area-inset-bottom));
 
-  // 导航栏操作按钮
-  .nav-actions {
-    display: flex;
-    gap: $spacing-lg;
-
-    svg {
-      width: 20px;
-      height: 20px;
-      cursor: pointer;
-    }
+  // 固定顶部导航栏占位
+  .navbar-fixed {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    background: $bg-card;
   }
 
   // 商品图片轮播
   .product-images {
     position: relative;
     background: $bg-card;
+    padding-top: $nav-height;
 
     .product-swiper {
-      --height: 375px;
+      --height: 37.5rem;
     }
 
     .product-image {
       width: 100%;
-      height: 375px;
+      height: 37.5rem;
       object-fit: cover;
     }
 
@@ -56,13 +54,14 @@
     .price-section {
       display: flex;
       align-items: center;
-      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: $spacing-sm;
       margin-bottom: $spacing-md;
 
       .current-price {
         display: flex;
         align-items: baseline;
-        gap: 2px;
+        gap: 0.2rem;
 
         .price-yuan {
           font-size: $font-size-base;
@@ -83,8 +82,8 @@
         }
       }
 
-      .commission-tag {
-        font-size: $font-size-sm;
+      .platform-tag {
+        font-size: $font-size-xs;
       }
     }
 
@@ -101,6 +100,14 @@
       color: $text-secondary;
       line-height: 1.6;
       margin-bottom: $spacing-md;
+    }
+
+    .product-meta {
+      display: flex;
+      gap: $spacing-lg;
+      margin-bottom: $spacing-md;
+      font-size: $font-size-sm;
+      color: $text-tertiary;
     }
 
     .product-tags {
@@ -126,68 +133,12 @@
       color: $text-secondary;
       padding-top: $spacing-md;
       border-top: 1px solid $border-light;
-    }
-  }
+      cursor: pointer;
 
-  // 分佣说明
-  .commission-section {
-    padding: $spacing-base;
-    background: $bg-card;
-    margin-bottom: $spacing-md;
-
-    .section-title {
-      display: flex;
-      align-items: center;
-      gap: $spacing-sm;
-      font-size: $font-size-lg;
-      font-weight: $font-weight-semibold;
-      color: $text-primary;
-      margin-bottom: $spacing-lg;
-
-      .title-icon {
-        font-size: $font-size-xl;
+      .arrow-icon {
+        margin-left: auto;
+        color: $text-tertiary;
       }
-    }
-
-    .commission-info {
-      display: flex;
-      justify-content: space-between;
-      padding: $spacing-lg;
-      background: #FFF5F7;
-      border-radius: $radius-md;
-      margin-bottom: $spacing-lg;
-
-      .commission-item {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: $spacing-xs;
-
-        .label {
-          font-size: $font-size-sm;
-          color: $text-secondary;
-        }
-
-        .value {
-          font-size: $font-size-lg;
-          font-weight: $font-weight-semibold;
-          color: $text-primary;
-        }
-
-        &.highlight {
-          .value {
-            color: $primary-color;
-            font-size: $font-size-2xl;
-          }
-        }
-      }
-    }
-
-    .share-btn {
-      --background-color: $primary-color;
-      --text-color: white;
-      border-radius: $radius-full;
-      font-weight: $font-weight-semibold;
     }
   }
 
@@ -195,6 +146,7 @@
   .detail-section {
     padding: $spacing-base;
     background: $bg-card;
+    margin-bottom: calc($tabbar-height + env(safe-area-inset-bottom));
 
     .section-title {
       display: flex;
@@ -218,69 +170,134 @@
       p {
         margin-bottom: $spacing-md;
       }
+    }
 
-      .detail-meta {
-        display: flex;
-        align-items: center;
-        gap: $spacing-sm;
-        font-size: $font-size-sm;
-        color: $text-tertiary;
-        margin-top: $spacing-lg;
-        padding-top: $spacing-md;
-        border-top: 1px solid $border-light;
-      }
+    .detail-meta {
+      display: flex;
+      align-items: center;
+      gap: $spacing-sm;
+      font-size: $font-size-sm;
+      color: $text-tertiary;
+      margin-top: $spacing-lg;
+      padding-top: $spacing-md;
+      border-top: 1px solid $border-light;
+    }
+
+    .detail-id {
+      font-size: $font-size-sm;
+      color: $text-tertiary;
+      margin-top: $spacing-sm;
     }
   }
 
-  // 底部操作栏
+  // 导航栏操作按钮
+  .nav-actions {
+    display: flex;
+    align-items: center;
+    gap: $spacing-lg;
+
+    .action-icon-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      padding: 0.4rem;
+      color: $text-primary;
+
+      svg {
+        width: 2rem;
+        height: 2rem;
+      }
+    }
+
+    .star-nav-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      padding: 0.4rem;
+    }
+
+    .star-active .star-icon {
+      fill: $primary-color;
+      stroke: $primary-color;
+    }
+  }
+
+  // 底部安全区占位（配合 fixed action-bar）
+  .bottom-safe-area {
+    height: calc($tabbar-height + env(safe-area-inset-bottom));
+  }
+
+  // 底部操作栏（浮在视口底部）
   .action-bar {
     position: fixed;
-    bottom: 0;
+    bottom: calc($tabbar-height + env(safe-area-inset-bottom));
     left: 0;
     right: 0;
     display: flex;
     align-items: center;
     padding: $spacing-sm $spacing-base;
-    padding-bottom: calc($spacing-sm + env(safe-area-inset-bottom));
     background: $bg-card;
-    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
+    box-shadow: 0 -0.2rem 1rem rgba(0, 0, 0, 0.05);
     z-index: 100;
+    gap: $spacing-sm;
 
     .action-btn {
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 2px;
+      gap: 0.2rem;
       padding: $spacing-sm $spacing-lg;
       border: none;
       background: transparent;
-      font-size: 11px;
+      font-size: 1.1rem;
       color: $text-secondary;
       cursor: pointer;
+      min-width: 5rem;
 
       &:active {
         opacity: 0.7;
       }
 
       svg {
-        width: 20px;
-        height: 20px;
+        width: 2rem;
+        height: 2rem;
       }
 
       &.favorite-btn {
         color: $primary-color;
+
+        :global(.star-icon) {
+          stroke: $primary-color;
+          fill: transparent;
+          transition: fill 0.2s;
+        }
+
+        &.star-active {
+          :global(.star-icon) {
+            fill: $primary-color;
+            stroke: $primary-color;
+          }
+        }
+      }
+    }
+
+    :global(.adm-button) {
+      &.favorite-btn {
+        background: transparent;
       }
     }
 
     .buy-btn {
       flex: 1;
-      margin-left: $spacing-md;
       --background-color: var(--primary-gradient);
       border-radius: $radius-full;
       font-weight: $font-weight-semibold;
       font-size: $font-size-lg;
-      height: 44px;
+      height: 4.4rem;
+      gap: $spacing-xs;
     }
   }
 
@@ -290,17 +307,17 @@
 
     :global(.skeleton-image) {
       width: 100%;
-      height: 300px;
+      height: 30rem;
       margin-bottom: $spacing-base;
     }
 
     :global(.skeleton-title) {
-      height: 24px;
+      height: 2.4rem;
       margin-bottom: $spacing-md;
     }
 
     :global(.skeleton-price) {
-      height: 32px;
+      height: 3.2rem;
       width: 50%;
     }
   }
@@ -314,9 +331,33 @@
     min-height: 50vh;
     gap: $spacing-lg;
 
+    .empty-icon {
+      font-size: 6rem;
+    }
+
     .empty-text {
       font-size: $font-size-lg;
       color: $text-tertiary;
     }
+  }
+}
+
+// 分享弹框样式（antd-mobile Dialog 内容）
+.share-dialog-content {
+  p {
+    font-size: $font-size-base;
+    color: $text-secondary;
+    margin-bottom: $spacing-md;
+    line-height: 1.6;
+  }
+
+  .share-link-box {
+    padding: $spacing-md;
+    background: $bg-page;
+    border-radius: $radius-sm;
+    font-size: $font-size-sm;
+    color: $text-primary;
+    word-break: break-all;
+    font-family: monospace;
   }
 }

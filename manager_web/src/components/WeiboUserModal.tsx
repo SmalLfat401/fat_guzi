@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
-import { Modal, Form, Input, InputNumber, Switch, Divider, Select } from 'antd';
-import { UserOutlined } from '@ant-design/icons';
+import { Modal, Form, Input, InputNumber, Switch, Divider, Select, Button, message } from 'antd';
+import { UserOutlined, BulbOutlined } from '@ant-design/icons';
 import type { WeiboUser, WeiboUserCreate, WeiboUserUpdate } from '../types/weibo';
 import { categoryApi } from '../api/category';
 import type { Category } from '../api/category';
+import { llmApi } from '../api/llm';
 
 interface WeiboUserModalProps {
   visible: boolean;
@@ -16,6 +17,54 @@ const WeiboUserModal: React.FC<WeiboUserModalProps> = ({ visible, user, onOk, on
   const [form] = Form.useForm();
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(false);
+  const [aiLoading, setAiLoading] = useState(false);
+
+  const analyzeWithAI = async () => {
+    const nickname = form.getFieldValue('nickname');
+    if (!nickname) {
+      message.warning('请先输入昵称');
+      return;
+    }
+
+    const availableCategories = categories.map(c => c.name);
+
+    setAiLoading(true);
+    try {
+      const prompt = `你是一个微博账号分析专家。用户输入的是微博官方账号名称，请直接分析名称中的关键词来匹配标签，不要进行过度推测。
+
+用户账号名称：${nickname}
+
+系统已有标签列表：
+${availableCategories.join('、')}
+
+分析要求：
+1. 根据账号名称中的关键词（如品牌名、IP名、行业领域等）直接匹配最合适的1-3个标签
+2. 备注填写账号名称本身传达的基本信息（如账号所属品牌、官方身份、所属领域等，20字以内）
+
+直接返回JSON，不要任何解释：
+{"notes":"账号名称本身的关键词含义","categories":["匹配的标签1","匹配的标签2"]}`;
+
+      const result = await llmApi.assist({ prompt, temperature: 0.3, max_tokens: 500 });
+      const parsed = JSON.parse(result.content);
+
+      const notes = parsed.notes || '';
+      const catNames: string[] = parsed.categories || [];
+
+      // 将分类名称映射为ID
+      const matchedCats = categories.filter(c => catNames.includes(c.name)).map(c => c._id);
+
+      form.setFieldsValue({
+        notes: form.getFieldValue('notes') ? `${form.getFieldValue('notes')}\n${notes}` : notes,
+        categories: [...new Set([...(form.getFieldValue('categories') || []), ...matchedCats])],
+      });
+      message.success('AI分析完成，已填充备注和标签');
+    } catch (error) {
+      console.error('AI分析失败:', error);
+      message.error('AI分析失败，请重试');
+    } finally {
+      setAiLoading(false);
+    }
+  };
 
   // 加载分类数据
   useEffect(() => {
@@ -107,6 +156,17 @@ const WeiboUserModal: React.FC<WeiboUserModalProps> = ({ visible, user, onOk, on
             }))}
           />
         </Form.Item>
+
+        <div style={{ marginTop: 8 }}>
+          <Button
+            icon={<BulbOutlined />}
+            onClick={analyzeWithAI}
+            loading={aiLoading}
+            disabled={aiLoading}
+          >
+            AI智能分析
+          </Button>
+        </div>
       </Form>
     </Modal>
   );

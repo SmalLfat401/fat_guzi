@@ -6,13 +6,55 @@
 .profile-page {
   min-height: 100vh;
   background: $bg-page;
-  padding-bottom: calc($spacing-xl + env(safe-area-inset-bottom));
+  padding-bottom: calc($tabbar-height + env(safe-area-inset-bottom));
 
-  // 用户信息卡片
-  .user-card {
+  // =========================================
+  // 固定顶部区域：标题栏 + 用户卡片
+  // =========================================
+  .profile-sticky-header {
+    position: sticky;
+    top: 0;
+    z-index: 90;
     background: var(--primary-gradient);
-    padding: $spacing-xl $spacing-base $spacing-2xl;
-    border-radius: 0 0 $radius-xl $radius-xl;
+    padding-top: env(safe-area-inset-top);
+
+    // 标题栏
+    .profile-title-bar {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      padding: 1.2rem $spacing-base 0;
+      height: $nav-height;
+
+      .profile-title {
+        font-size: $font-size-xl;
+        font-weight: $font-weight-semibold;
+        color: $text-inverse;
+      }
+
+      .profile-settings {
+        position: absolute;
+        right: $spacing-base;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        color: $text-inverse;
+        opacity: 0.9;
+
+        svg {
+          width: 2.2rem;
+          height: 2.2rem;
+        }
+      }
+    }
+  }
+
+  // 用户信息卡片（渐变背景内嵌）
+  .user-card {
+    background: transparent;
+    padding: 0 $spacing-base $spacing-2xl;
 
     .user-info {
       display: flex;
@@ -20,15 +62,15 @@
       cursor: pointer;
 
       .user-avatar {
-        width: 64px;
-        height: 64px;
+        width: 6.4rem;
+        height: 6.4rem;
         border-radius: $radius-round;
         background: rgba(255, 255, 255, 0.3);
-        border: 3px solid rgba(255, 255, 255, 0.5);
+        border: 0.3rem solid rgba(255, 255, 255, 0.5);
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 28px;
+        font-size: 2.8rem;
       }
 
       .user-detail {
@@ -48,10 +90,10 @@
           }
 
           .level-tag {
-            padding: 2px $spacing-sm;
+            padding: 0.2rem $spacing-sm;
             background: rgba(255, 255, 255, 0.3);
             border-radius: $radius-full;
-            font-size: 11px;
+            font-size: 1.1rem;
             color: $text-inverse;
           }
         }
@@ -73,80 +115,19 @@
             }
 
             .stat-label {
-              font-size: 11px;
+              font-size: 1.1rem;
               color: rgba(255, 255, 255, 0.8);
-              margin-top: 2px;
+              margin-top: 0.2rem;
             }
           }
 
           .stat-divider {
-            width: 1px;
-            height: 24px;
+            width: 0.1rem;
+            height: 2.4rem;
             background: rgba(255, 255, 255, 0.3);
           }
         }
       }
-    }
-  }
-
-  // 佣金卡片
-  .commission-card {
-    margin: -$spacing-lg $spacing-base $spacing-base;
-    padding: $spacing-base;
-    background: $bg-card;
-    border-radius: $radius-lg;
-    box-shadow: var(--shadow-md);
-
-    .commission-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: $spacing-md;
-
-      .title {
-        font-size: $font-size-sm;
-        color: $text-secondary;
-      }
-
-      .question {
-        width: 18px;
-        height: 18px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background: $bg-page;
-        border-radius: $radius-round;
-        font-size: 11px;
-        color: $text-tertiary;
-        cursor: pointer;
-      }
-    }
-
-    .commission-value {
-      display: flex;
-      align-items: baseline;
-      margin-bottom: $spacing-md;
-
-      .currency {
-        font-size: $font-size-lg;
-        color: $primary-color;
-        font-weight: $font-weight-semibold;
-      }
-
-      .amount {
-        font-size: $font-size-3xl;
-        font-weight: $font-weight-bold;
-        color: $primary-color;
-        margin-left: 2px;
-      }
-    }
-
-    .commission-tips {
-      font-size: $font-size-sm;
-      color: $text-tertiary;
-      text-align: center;
-      padding-top: $spacing-md;
-      border-top: 1px dashed $border-light;
     }
   }
 
@@ -157,7 +138,7 @@
     overflow: hidden;
 
     :global(.adm-list-item) {
-      padding: $spacing-md + 2 $spacing-base;
+      padding: calc(#{$spacing-md} + 0.2rem) $spacing-base;
 
       &:not(:last-child) {
         border-bottom: 1px solid $border-light;
@@ -166,7 +147,7 @@
 
     :global(.adm-list-item-content-prefix) {
       margin-right: $spacing-md;
-      font-size: 18px;
+      font-size: 1.8rem;
       color: $primary-color;
     }
 
@@ -186,12 +167,12 @@
         gap: $spacing-sm;
 
         .badge {
-          padding: 2px 6px;
+          padding: 0.2rem 0.6rem;
           background: $primary-color;
           color: $text-inverse;
-          font-size: 10px;
+          font-size: 1rem;
           border-radius: $radius-full;
-          min-width: 18px;
+          min-width: 1.8rem;
           text-align: center;
         }
 
@@ -211,7 +192,7 @@
     justify-content: center;
     gap: $spacing-sm;
     margin: $spacing-2xl $spacing-base 0;
-    padding: $spacing-md + 2;
+    padding: calc(#{$spacing-md} + 0.2rem);
     background: $bg-card;
     border-radius: $radius-md;
     font-size: $font-size-md;
@@ -224,8 +205,8 @@
     }
 
     svg {
-      width: 18px;
-      height: 18px;
+      width: 1.8rem;
+      height: 1.8rem;
     }
   }
 }

@@ -1,6 +1,7 @@
 /**
  * 全局样式变量 - 主题配置中心
- * 所有页面和组件都应该引用此文件中的变量
+ * 基于 1rem = 10px 的换算体系
+ * 设计稿宽度 375px
  */
 
 /* ==================== 主题色 ==================== */
@@ -42,46 +43,11 @@
   --border-light: #f5f5f5;
   --border-dark: #dddddd;
 
-  /* ==================== 圆角 ==================== */
-  --radius-xs: 4px;
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 16px;
-  --radius-xl: 24px;
-  --radius-round: 50%;
-  --radius-full: 9999px;
-
-  /* ==================== 字体大小 ==================== */
-  --font-size-xs: 10px;
-  --font-size-sm: 12px;
-  --font-size-base: 14px;
-  --font-size-md: 15px;
-  --font-size-lg: 16px;
-  --font-size-xl: 18px;
-  --font-size-2xl: 20px;
-  --font-size-3xl: 24px;
-  --font-size-4xl: 28px;
-
-  /* ==================== 字体粗细 ==================== */
-  --font-weight-normal: 400;
-  --font-weight-medium: 500;
-  --font-weight-semibold: 600;
-  --font-weight-bold: 700;
-
-  /* ==================== 间距 ==================== */
-  --spacing-xs: 4px;
-  --spacing-sm: 8px;
-  --spacing-md: 12px;
-  --spacing-base: 16px;
-  --spacing-lg: 20px;
-  --spacing-xl: 24px;
-  --spacing-2xl: 32px;
-
   /* ==================== 阴影 ==================== */
-  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.08);
-  --shadow-md: 0 2px 12px rgba(0, 0, 0, 0.1);
-  --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.12);
-  --shadow-xl: 0 8px 24px rgba(0, 0, 0, 0.15);
+  --shadow-sm: 0 0.2rem 0.8rem rgba(0, 0, 0, 0.08);
+  --shadow-md: 0 0.2rem 1.2rem rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 0.4rem 1.6rem rgba(0, 0, 0, 0.12);
+  --shadow-xl: 0 0.8rem 2.4rem rgba(0, 0, 0, 0.15);
 
   /* ==================== 动画 ==================== */
   --transition-fast: 0.15s ease;
@@ -89,12 +55,12 @@
   --transition-slow: 0.35s ease;
 
   /* ==================== 布局 ==================== */
-  --nav-height: 46px;
-  --tabbar-height: 50px;
+  --nav-height: 4.6rem;
+  --tabbar-height: 5rem;
   --safe-area-bottom: env(safe-area-inset-bottom);
 }
 
-/* ==================== SCSS 变量（供 SCSS 文件使用） ==================== */
+/* ==================== SCSS 变量（基于 1rem = 10px） ==================== */
 $primary-color: #FF6B9D;
 $primary-light: #FFB6C8;
 $primary-dark: #E85A8A;
@@ -117,39 +83,44 @@ $border-color: #eeeeee;
 $border-light: #f5f5f5;
 $border-dark: #dddddd;
 
-$radius-xs: 4px;
-$radius-sm: 8px;
-$radius-md: 12px;
-$radius-lg: 16px;
-$radius-xl: 24px;
+/* 圆角 - 使用 rem 单位 */
+$radius-xs: 0.4rem;
+$radius-sm: 0.8rem;
+$radius-md: 1.2rem;
+$radius-lg: 1.6rem;
+$radius-xl: 2.4rem;
 $radius-round: 50%;
-$radius-full: 9999px;
+$radius-full: 9999rem;
 
-$font-size-xs: 10px;
-$font-size-sm: 12px;
-$font-size-base: 14px;
-$font-size-md: 15px;
-$font-size-lg: 16px;
-$font-size-xl: 18px;
-$font-size-2xl: 20px;
-$font-size-3xl: 24px;
-$font-size-4xl: 28px;
+/* 字体大小 - 使用 rem 单位（基于 1rem = 10px） */
+$font-size-xs: 1rem;
+$font-size-sm: 1.2rem;
+$font-size-base: 1.4rem;
+$font-size-md: 1.5rem;
+$font-size-lg: 1.6rem;
+$font-size-xl: 1.8rem;
+$font-size-2xl: 2rem;
+$font-size-3xl: 2.4rem;
+$font-size-4xl: 2.8rem;
 
+/* 字体粗细 */
 $font-weight-normal: 400;
 $font-weight-medium: 500;
 $font-weight-semibold: 600;
 $font-weight-bold: 700;
 
-$spacing-xs: 4px;
-$spacing-sm: 8px;
-$spacing-md: 12px;
-$spacing-base: 16px;
-$spacing-lg: 20px;
-$spacing-xl: 24px;
-$spacing-2xl: 32px;
+/* 间距 - 使用 rem 单位 */
+$spacing-xs: 0.4rem;
+$spacing-sm: 0.8rem;
+$spacing-md: 1.2rem;
+$spacing-base: 1.6rem;
+$spacing-lg: 2rem;
+$spacing-xl: 2.4rem;
+$spacing-2xl: 3.2rem;
 
-$nav-height: 46px;
-$tabbar-height: 50px;
+/* 布局 */
+$nav-height: 4.6rem;
+$tabbar-height: 5rem;
 
 /* ==================== Mixins 工具函数 ==================== */
 @mixin flex-center {
@@ -181,7 +152,7 @@ $tabbar-height: 50px;
 @mixin card {
   background: $bg-card;
   border-radius: $radius-md;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 0.2rem 0.8rem rgba(0, 0, 0, 0.08);
 }
 
 @mixin primary-gradient {
@@ -190,4 +161,10 @@ $tabbar-height: 50px;
 
 @mixin safe-area-bottom {
   padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* ==================== 响应式字体大小（可选） ==================== */
+/* 使用 clamp() 实现流体字体，可选方案 */
+@mixin fluid-font($min, $max) {
+  font-size: clamp(#{$min}, #{$max}, #{$max});
 }

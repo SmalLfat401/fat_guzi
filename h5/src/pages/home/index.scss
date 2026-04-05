@@ -6,18 +6,22 @@
 .home-page {
   min-height: 100vh;
   background: linear-gradient(180deg, #FFF5F7 0%, $bg-page 30%);
+  padding-bottom: calc($tabbar-height + env(safe-area-inset-bottom));
 
-  // 顶部搜索栏
+  // 顶部搜索栏（固定在顶部）
   .home-header {
-    padding: $spacing-base $spacing-base $spacing-base $spacing-base;
+    position: sticky;
+    top: 0;
+    z-index: 90;
+    padding: $spacing-base;
     background: var(--primary-gradient);
 
     .search-bar {
       display: flex;
       align-items: center;
-      padding: 10px $spacing-lg;
+      padding: 1rem $spacing-lg;
       background: var(--bg-overlay);
-      border-radius: 20px;
+      border-radius: 2rem;
       cursor: pointer;
       box-shadow: var(--shadow-md);
 
@@ -36,10 +40,10 @@
   // 公告轮播
   .notice-section {
     padding: 0 $spacing-base;
-    margin-top: -20px;
+    margin-top: -2rem;
 
     .notice-swiper {
-      --height: 44px;
+      --height: 4.4rem;
       border-radius: $radius-sm;
       overflow: hidden;
     }
@@ -47,8 +51,8 @@
     .notice-card {
       display: flex;
       align-items: center;
-      padding: 10px $spacing-lg;
-      height: 44px;
+      padding: 1rem $spacing-lg;
+      height: 4.4rem;
       font-size: $font-size-sm;
       color: $text-inverse;
 
@@ -98,13 +102,13 @@
       cursor: pointer;
 
       .entry-icon {
-        width: 48px;
-        height: 48px;
+        width: 4.8rem;
+        height: 4.8rem;
         border-radius: $radius-md;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 24px;
+        font-size: 2.4rem;
         box-shadow: var(--shadow-sm);
       }
 
@@ -127,7 +131,7 @@
 
     .tab-content {
       padding: $spacing-base;
-      min-height: 300px;
+      min-height: 30rem;
     }
   }
 
@@ -157,7 +161,7 @@
     .event-cover,
     .release-image {
       width: 100%;
-      height: 160px;
+      height: 16rem;
       object-fit: cover;
     }
 
@@ -221,8 +225,8 @@
       display: flex;
 
       .release-image {
-        width: 100px;
-        height: 100px;
+        width: 10rem;
+        height: 10rem;
         border-radius: $radius-sm;
         object-fit: cover;
       }
@@ -262,12 +266,12 @@
 
     .product-image {
       width: 100%;
-      height: 150px;
+      height: 15rem;
       object-fit: cover;
     }
 
     .product-info {
-      padding: $spacing-sm $spacing-sm $spacing-sm $spacing-sm;
+      padding: $spacing-sm;
 
       .product-title {
         font-size: $font-size-sm;
@@ -279,8 +283,8 @@
 
       .product-price-row {
         display: flex;
-        align-items: center;
-        justify-content: space-between;
+        align-items: baseline;
+        gap: $spacing-xs;
         margin-bottom: $spacing-xs;
 
         .product-price {
@@ -289,8 +293,10 @@
           color: $primary-color;
         }
 
-        .commission-tag {
-          font-size: 10px;
+        .original-price {
+          font-size: $font-size-sm;
+          color: $text-tertiary;
+          text-decoration: line-through;
         }
       }
 
@@ -300,8 +306,8 @@
         flex-wrap: wrap;
 
         .tag-item {
-          font-size: 10px;
-          padding: 2px 6px;
+          font-size: $font-size-xs;
+          padding: 0.2rem 0.6rem;
           background: $bg-page;
           border-radius: $radius-xs;
           color: $text-secondary;
@@ -329,8 +335,8 @@
     flex-wrap: wrap;
 
     .tag-item {
-      font-size: 10px;
-      padding: 2px 6px;
+      font-size: $font-size-xs;
+      padding: 0.2rem 0.6rem;
       background: #FFF0F3;
       border-radius: $radius-xs;
       color: $primary-color;

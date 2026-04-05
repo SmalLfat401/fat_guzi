@@ -1,7 +1,7 @@
 /**
  * OpenClaw H5 应用主组件
  */
-import React, { useEffect } from 'react';
+import React from 'react';
 import { BrowserRouter, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import { initRem } from '@/utils/rem';
 import TabBar from '@/components/TabBar';
@@ -31,7 +31,8 @@ function AppContent() {
 
   return (
     <div className="app">
-      <div className={`page-container ${showTabBar ? '' : 'no-tabbar'}`}>
+      {/* 页面内容区 */}
+      <div className="page-container">
         <Routes>
           {routes.map((route) => (
             <Route
@@ -42,22 +43,21 @@ function AppContent() {
           ))}
         </Routes>
       </div>
+
+      {/* 固定底部 TabBar */}
       {showTabBar && (
-        <TabBar
-          currentPath={location.pathname}
-          onChange={(path) => navigate(path)}
-        />
+        <div className="tabbar-fixed">
+          <TabBar
+            currentPath={location.pathname}
+            onChange={(path) => navigate(path)}
+          />
+        </div>
       )}
     </div>
   );
 }
 
 function App() {
-  // 初始化 Rem 计算
-  useEffect(() => {
-    initRem();
-  }, []);
-
   return (
     <BrowserRouter>
       <AppContent />

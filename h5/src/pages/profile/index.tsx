@@ -4,7 +4,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  NavBar,
   List,
 } from 'antd-mobile';
 import {
@@ -12,7 +11,6 @@ import {
   Setting,
   Help,
   Info,
-  Gift,
   ShoppingBag,
   Bell,
   Star,
@@ -28,7 +26,6 @@ const ProfilePage: React.FC = () => {
     avatar: '',
     level: 'Lv.5',
     isVip: false,
-    totalCommission: 128.50,
     orderCount: 12,
     favoriteCount: 36,
   };
@@ -57,12 +54,6 @@ const ProfilePage: React.FC = () => {
       badge: userInfo.favoriteCount,
     },
     {
-      title: '我的佣金',
-      icon: <Gift />,
-      path: '/profile/commission',
-      value: `¥${userInfo.totalCommission.toFixed(2)}`,
-    },
-    {
       title: '活动通知',
       icon: <Bell />,
       path: '/profile/notifications',
@@ -81,51 +72,37 @@ const ProfilePage: React.FC = () => {
 
   return (
     <div className="profile-page">
-      <NavBar onBack={() => navigate(-1)}>我的</NavBar>
-
-      {/* 用户信息卡片 */}
-      <div className="user-card">
-        <div className="user-info" onClick={handleLogin}>
-          <div className="user-avatar">
-            {userInfo.avatar ? '' : '👤'}
-          </div>
-          <div className="user-detail">
-            <div className="user-name-row">
-              <span className="user-name">{userInfo.name}</span>
-              <span className="level-tag">{userInfo.level}</span>
+      {/* 顶部固定区域：渐变用户卡片（替代 NavBar） */}
+      <div className="profile-sticky-header">
+        <div className="profile-title-bar">
+          <span className="profile-title">我的</span>
+          <span className="profile-settings" onClick={handleSettings}>
+            <Setting />
+          </span>
+        </div>
+        <div className="user-card">
+          <div className="user-info" onClick={handleLogin}>
+            <div className="user-avatar">
+              {userInfo.avatar ? '' : '👤'}
             </div>
-            <div className="user-stats">
-              <div className="stat-item">
-                <span className="stat-value">¥{userInfo.totalCommission.toFixed(2)}</span>
-                <span className="stat-label">累计佣金</span>
+            <div className="user-detail">
+              <div className="user-name-row">
+                <span className="user-name">{userInfo.name}</span>
+                <span className="level-tag">{userInfo.level}</span>
               </div>
-              <div className="stat-divider" />
-              <div className="stat-item">
-                <span className="stat-value">{userInfo.orderCount}</span>
-                <span className="stat-label">订单</span>
-              </div>
-              <div className="stat-divider" />
-              <div className="stat-item">
-                <span className="stat-value">{userInfo.favoriteCount}</span>
-                <span className="stat-label">收藏</span>
+              <div className="user-stats">
+                <div className="stat-item">
+                  <span className="stat-value">{userInfo.orderCount}</span>
+                  <span className="stat-label">订单</span>
+                </div>
+                <div className="stat-divider" />
+                <div className="stat-item">
+                  <span className="stat-value">{userInfo.favoriteCount}</span>
+                  <span className="stat-label">收藏</span>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      </div>
-
-      {/* 佣金卡片 */}
-      <div className="commission-card">
-        <div className="commission-header">
-          <span className="title">本月预估佣金</span>
-          <span className="question">?</span>
-        </div>
-        <div className="commission-value">
-          <span className="currency">¥</span>
-          <span className="amount">{(userInfo.totalCommission * 0.3).toFixed(2)}</span>
-        </div>
-        <div className="commission-tips">
-          <span>分享商品即可获得佣金</span>
         </div>
       </div>
 
@@ -140,7 +117,6 @@ const ProfilePage: React.FC = () => {
                 {item.badge !== undefined && (
                   <span className="badge">{item.badge > 99 ? '99+' : item.badge}</span>
                 )}
-                {item.value && <span className="value">{item.value}</span>}
                 <ArrowRight />
               </div>
             }

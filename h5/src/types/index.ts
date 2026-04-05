@@ -9,8 +9,6 @@ export interface GuziProduct {
   images: string[];
   price: number;
   originalPrice?: number;
-  commissionAmount?: number;
-  commissionRate?: number;
   category?: string;
   tags: string[];
   description?: string;
@@ -21,7 +19,6 @@ export interface GuziProduct {
   shopId?: string;
   platform?: 'taobao' | 'jd' | 'pdd' | 'wechat';
   productUrl?: string;
-  isCommission: boolean;
   isHot?: boolean;
   createdAt?: string;
   updatedAt?: string;
@@ -35,7 +32,6 @@ export interface ProductFilter {
   sortBy?: 'price' | 'sales' | 'rating' | 'createTime';
   sortOrder?: 'asc' | 'desc';
   keyword?: string;
-  isCommission?: boolean;
 }
 
 /**

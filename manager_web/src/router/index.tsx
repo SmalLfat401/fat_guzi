@@ -1,8 +1,6 @@
 import { createBrowserRouter, Navigate } from 'react-router-dom';
 import App from '../App';
 import WeiboUserTable from '../components/WeiboUserTable';
-import CrawlerDashboard from '../components/CrawlerDashboard';
-import CategoryCrawlerDetail from '../pages/crawler/CategoryCrawlerDetail';
 import Dashboard from '../pages/Dashboard';
 import CategoryList from '../pages/categories/CategoryList';
 import CommissionAccountSettings from '../pages/settings/CommissionAccountSettings';
@@ -52,24 +50,11 @@ const router = createBrowserRouter([
         element: <GuziProductList />,
       },
       {
-        path: 'crawler',
-        children: [
-          {
-            index: true,
-            element: <CrawlerDashboard />,
-          },
-          {
-            path: 'category/:categoryId',
-            element: <CategoryCrawlerDetail />,
-          },
-        ],
-      },
-      {
         path: 'dashboard',
         element: <Dashboard />,
       },
-        {
-          path: 'settings',
+      {
+        path: 'settings',
           children: [
             {
               index: true,

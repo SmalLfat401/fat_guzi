@@ -1,178 +1,402 @@
 /**
  * 日历页面样式
+ * 统一视图：活动日历 + 谷子上新
  */
 @use '@/styles/variables.scss' as *;
 
 .calendar-page {
   min-height: 100vh;
   background: $bg-page;
+  padding-bottom: calc($tabbar-height + env(safe-area-inset-bottom));
 
-  .calendar-tabs {
-    :global(.adm-tabs-tab-list) {
-      background: $bg-card;
-    }
-
-    :global(.adm-tabs-content) {
-      padding: 0;
-    }
-  }
-
-  .calendar-content {
-    padding: $spacing-base;
-  }
-
-  // 月份选择器
-  .month-selector {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: $spacing-md $spacing-base;
+  // =============================================
+  // Header（固定在顶部）
+  // =============================================
+  .cal-header {
+    position: sticky;
+    top: 0;
+    z-index: 90;
+    padding: 1.2rem 2rem 0;
     background: $bg-card;
-    border-radius: $radius-md;
-    margin-bottom: $spacing-base;
 
-    .month-nav {
-      width: 32px;
-      height: 32px;
+    .header-top {
       display: flex;
+      justify-content: space-between;
       align-items: center;
-      justify-content: center;
-      font-size: $font-size-2xl;
-      color: $primary-color;
-      cursor: pointer;
-      border-radius: $radius-round;
-      transition: background var(--transition-fast);
-
-      &:active {
-        background: #FFF0F3;
-      }
+      margin-bottom: 0.8rem;
     }
 
-    .current-month {
-      font-size: $font-size-lg;
+    .header-title {
+      font-size: $font-size-2xl;
       font-weight: $font-weight-semibold;
       color: $text-primary;
     }
-  }
 
-  // 加载状态
-  .loading-list {
-    display: flex;
-    flex-direction: column;
-    gap: $spacing-md;
-  }
-
-  // 事件列表
-  .events-list {
-    display: flex;
-    flex-direction: column;
-    gap: $spacing-lg;
-  }
-
-  .month-group {
-    .month-title {
+    .header-sub {
       font-size: $font-size-sm;
-      font-weight: $font-weight-semibold;
-      color: $primary-color;
-      margin-bottom: $spacing-md;
-      padding-left: $spacing-xs;
+      color: $text-tertiary;
+      margin-top: 0.2rem;
+    }
+
+    // 日历/列表切换按钮组
+    .mode-toggle {
+      display: flex;
+      background: $bg-page;
+      border-radius: 2rem;
+      padding: 0.3rem;
+
+      .mode-btn {
+        padding: 0.5rem 1.4rem;
+        border-radius: 1.6rem;
+        font-size: $font-size-sm;
+        font-weight: $font-weight-medium;
+        border: none;
+        background: transparent;
+        color: $text-tertiary;
+        cursor: pointer;
+        transition: all 0.2s;
+
+        &.active {
+          background: $bg-card;
+          color: $text-primary;
+          box-shadow: 0 0.1rem 0.3rem rgba(0, 0, 0, 0.1);
+        }
+      }
     }
   }
 
-  .event-card,
-  .release-card {
-    border-radius: $radius-md;
-    overflow: hidden;
-    margin-bottom: 0;
+  // =============================================
+  // 分类标签横向滚动区
+  // =============================================
+  .filter-row {
+    display: flex;
+    gap: 0.6rem;
+    padding: 1rem 2rem;
+    overflow-x: auto;
     background: $bg-card;
-    box-shadow: var(--shadow-sm);
+    scrollbar-width: none;
 
-    .event-item,
-    .release-item {
+    &::-webkit-scrollbar {
+      display: none;
+    }
+
+    .tag {
+      padding: 0.5rem 1.2rem;
+      border-radius: 2rem;
+      font-size: $font-size-sm;
+      font-weight: $font-weight-medium;
+      white-space: nowrap;
+      cursor: pointer;
+      border: 1.5px solid transparent;
+      transition: all 0.15s;
+      flex-shrink: 0;
+      background: transparent;
+
+      &.all {
+        background: $text-primary;
+        color: $bg-card;
+        border-color: $text-primary;
+
+        &.active {
+          opacity: 0.85;
+        }
+      }
+
+      &.expo {
+        background: #EEEDFE;
+        color: #534AB7;
+        border-color: #EEEDFE;
+
+        &.active {
+          border-color: #534AB7;
+        }
+      }
+
+      &.merch {
+        background: #FBEAF0;
+        color: #D4537E;
+        border-color: #FBEAF0;
+
+        &.active {
+          border-color: #D4537E;
+        }
+      }
+
+      &.sale {
+        background: #FAEEDA;
+        color: #BA7517;
+        border-color: #FAEEDA;
+
+        &.active {
+          border-color: #BA7517;
+        }
+      }
+    }
+  }
+
+  // =============================================
+  // 日历视图
+  // =============================================
+  .cal-view {
+    padding-bottom: 2rem;
+
+    .cal-loading {
+      padding: 2rem;
+    }
+
+    // 月份导航
+    .cal-nav {
       display: flex;
       align-items: center;
-      padding: $spacing-md;
-      gap: $spacing-md;
+      justify-content: space-between;
+      padding: 0.6rem 2rem 0.4rem;
 
-      .event-cover,
-      .release-cover {
-        width: 80px;
-        height: 80px;
-        border-radius: $radius-sm;
-        object-fit: cover;
+      .cal-nav-btn {
+        background: none;
+        border: none;
+        font-size: 1.8rem;
+        cursor: pointer;
+        color: $text-tertiary;
+        padding: 0.4rem 0.8rem;
+
+        &:active {
+          opacity: 0.6;
+        }
       }
 
-      .event-detail,
-      .release-detail {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-        gap: $spacing-xs;
+      .cal-month {
+        font-size: $font-size-md;
+        font-weight: $font-weight-medium;
+        color: $text-primary;
+      }
+    }
 
-        .event-title,
-        .release-title {
-          font-size: $font-size-md;
-          font-weight: $font-weight-semibold;
-          color: $text-primary;
-          @include text-ellipsis;
-        }
+    // 日历格子区
+    .cal-grid {
+      padding: 0 1.6rem;
 
-        .event-meta {
+      .cal-weekdays {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        text-align: center;
+        font-size: 1.1rem;
+        color: $text-tertiary;
+        padding: 0.4rem 0;
+        font-weight: $font-weight-medium;
+      }
+
+      .cal-days {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 0.2rem;
+
+        .cal-day {
+          aspect-ratio: 1;
           display: flex;
           flex-direction: column;
-          gap: $spacing-xs;
-
-          .meta-item {
-            display: flex;
-            align-items: center;
-            gap: $spacing-xs;
-            font-size: $font-size-sm;
-            color: $text-secondary;
-          }
-        }
-
-        .release-price {
-          display: flex;
           align-items: center;
-          gap: $spacing-sm;
+          justify-content: center;
+          border-radius: 50%;
+          cursor: pointer;
+          position: relative;
+          transition: background 0.15s;
+          font-size: 1.3rem;
+          color: $text-primary;
 
-          .current-price {
-            font-size: $font-size-lg;
-            font-weight: $font-weight-semibold;
-            color: $primary-color;
+          &:hover {
+            background: $bg-page;
           }
 
-          .original-price {
-            font-size: $font-size-sm;
+          &.other-month {
             color: $text-tertiary;
-            text-decoration: line-through;
+            opacity: 0.4;
           }
-        }
 
-        .release-date {
-          display: flex;
-          align-items: center;
-          gap: $spacing-xs;
-          font-size: $font-size-sm;
-          color: $text-secondary;
-        }
+          &.today {
+            font-weight: $font-weight-medium;
+            background: $text-primary;
+            color: $bg-card;
+          }
 
-        .status-tag {
-          align-self: flex-start;
+          &.selected {
+            background: #D4537E;
+            color: #fff;
+          }
+
+          &.today.selected {
+            background: #D4537E;
+          }
+
+          // 底部小圆点
+          .dot-row {
+            display: flex;
+            gap: 0.2rem;
+            position: absolute;
+            bottom: 0.2rem;
+            justify-content: center;
+
+            .dot {
+              width: 0.4rem;
+              height: 0.4rem;
+              border-radius: 50%;
+
+              &.expo  { background: #7F77DD; }
+              &.merch { background: #ED93B1; }
+              &.sale  { background: #EF9F27; }
+            }
+          }
         }
       }
+    }
 
-      .arrow-icon {
+    // 分隔线
+    .divider {
+      height: 0.5px;
+      background: $border-color;
+      margin: 1rem 2rem 0;
+    }
+
+    // 选中日期 label
+    .day-label {
+      padding: 1rem 2rem 0.4rem;
+      font-size: $font-size-sm;
+      font-weight: $font-weight-medium;
+      color: $text-tertiary;
+      letter-spacing: 0.04em;
+    }
+
+    // 事件列表
+    .event-list {
+      padding: 0 1.6rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.8rem;
+      padding-bottom: 1rem;
+    }
+
+    .empty-day {
+      text-align: center;
+      padding: 2.4rem 0;
+      color: $text-tertiary;
+      font-size: $font-size-sm;
+    }
+  }
+
+  // =============================================
+  // 事件卡片（通用）
+  // =============================================
+  .event-card {
+    display: flex;
+    gap: 1rem;
+    padding: 1rem 1.2rem;
+    border-radius: 1.4rem;
+    border: 0.5px solid $border-color;
+    background: $bg-card;
+    cursor: pointer;
+    transition: all 0.15s;
+    align-items: flex-start;
+
+    &:active {
+      background: $bg-page;
+    }
+
+    .event-icon {
+      width: 3.6rem;
+      height: 3.6rem;
+      border-radius: 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.6rem;
+      flex-shrink: 0;
+      margin-top: 0.1rem;
+    }
+
+    .event-body {
+      flex: 1;
+      min-width: 0;
+
+      .event-name {
+        font-size: $font-size-md;
+        font-weight: $font-weight-medium;
+        color: $text-primary;
+        line-height: 1.3;
+        margin-bottom: 0.3rem;
+      }
+
+      .event-meta {
+        font-size: $font-size-sm;
         color: $text-tertiary;
-        flex-shrink: 0;
+        display: flex;
+        gap: 0.6rem;
+        align-items: center;
+      }
+    }
+
+    .event-right {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 0.4rem;
+      margin-top: 0.1rem;
+      flex-shrink: 0;
+
+      .event-price {
+        font-size: $font-size-sm;
+        font-weight: $font-weight-medium;
+        color: $primary-color;
+      }
+
+      .event-tag {
+        font-size: 1rem;
+        font-weight: $font-weight-medium;
+        padding: 0.2rem 0.7rem;
+        border-radius: 0.8rem;
       }
     }
   }
 
-  // 上新列表
-  .releases-list {
-    display: flex;
-    flex-direction: column;
-    gap: $spacing-md;
+  // =============================================
+  // 列表视图
+  // =============================================
+  .list-view {
+    padding-bottom: 2rem;
+
+    .cal-loading {
+      padding: 2rem;
+    }
+
+    .list-empty {
+      padding: 3rem 0;
+    }
+
+    .list-section {
+      padding: 0 1.6rem;
+
+      .list-date-header {
+        padding: 1rem 0.4rem 0.6rem;
+        font-size: $font-size-sm;
+        font-weight: $font-weight-medium;
+        color: $text-tertiary;
+        letter-spacing: 0.05em;
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+
+        .list-today-badge {
+          background: $text-primary;
+          color: $bg-card;
+          font-size: 1rem;
+          padding: 0.1rem 0.6rem;
+          border-radius: 0.8rem;
+        }
+      }
+
+      .event-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.8rem;
+      }
+    }
   }
 }

@@ -13,7 +13,7 @@
 }
 
 html {
-  font-size: 16px;
+  font-size: 10px; /* 基准值，动态 rem 计算会在 initRem 中覆盖 */
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -30,13 +30,6 @@ body {
 
 #root {
   min-height: 100vh;
-}
-
-/* 移动端适配 */
-@media screen and (max-width: 750px) {
-  html {
-    font-size: calc(16 / 375 * 100vw);
-  }
 }
 
 /* 去除 iOS 点击高亮 */
@@ -128,7 +121,7 @@ ol {
 
 @keyframes slideUp {
   from {
-    transform: translateY(20px);
+    transform: translateY(2rem);
     opacity: 0;
   }
   to {
@@ -149,10 +142,11 @@ ol {
 .app {
   min-height: 100vh;
   background-color: var(--bg-page);
+  /* 为 fixed 导航栏提供参照定位 */
+  position: relative;
 }
 
 .page-container {
-  padding-bottom: calc(50px + env(safe-area-inset-bottom));
   min-height: 100vh;
 }
 
@@ -163,6 +157,18 @@ ol {
 /* 底部安全区 */
 .safe-area-bottom {
   padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* 固定 TabBar（浮在视口底部） */
+.tabbar-fixed {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 200;
+  padding-bottom: env(safe-area-inset-bottom);
+  background: var(--bg-card);
+  box-shadow: 0 -0.1rem 0.8rem rgba(0, 0, 0, 0.06);
 }
 
 /* antd-mobile 组件样式覆盖 */
@@ -176,4 +182,24 @@ ol {
 
 .adm-tab-bar {
   --background-color: var(--bg-card);
+}
+
+/* NavBar fixed 模式 */
+.adm-nav-bar-fixed {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  z-index: 100 !important;
+}
+
+/* 页面顶部安全区（NavBar fixed 占位） */
+.page-top-safe {
+  height: env(safe-area-inset-top);
+  background: $bg-card;
+}
+
+/* 页面底部安全区（配合固定 TabBar） */
+.page-bottom-safe {
+  height: calc($tabbar-height + env(safe-area-inset-bottom));
 }

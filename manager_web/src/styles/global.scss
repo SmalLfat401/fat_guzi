@@ -307,3 +307,454 @@ a {
   border: 1px solid rgba(255, 51, 102, 0.3);
   color: $accent-red;
 }
+
+// ============================================
+// 自动化控制面板
+// ============================================
+
+.automation-panel {
+  @include card-style;
+  padding: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  overflow: hidden;
+
+  // 顶部状态栏
+  .ap-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 20px;
+    border-bottom: 1px solid rgba(0, 240, 255, 0.08);
+    background: rgba(0, 240, 255, 0.02);
+    flex-shrink: 0;
+  }
+
+  .ap-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 15px;
+    font-weight: 700;
+    color: $text-primary;
+    letter-spacing: 0.5px;
+
+    .ap-title-icon {
+      color: $accent-cyan;
+      font-size: 16px;
+    }
+  }
+
+  .ap-header-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .ap-status-badge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 10px;
+    background: rgba(0, 240, 255, 0.06);
+    border: 1px solid $border-color;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  .ap-status-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    flex-shrink: 0;
+
+    // running 闪烁
+    .running & {
+      animation: pulse-dot 1.5s ease-in-out infinite;
+    }
+  }
+
+  .ap-start-time {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    color: $text-muted;
+    font-size: 11px;
+  }
+
+  // 主内容区
+  .ap-body {
+    display: flex;
+    flex: 1;
+    gap: 0;
+    min-height: 0;
+  }
+
+  // 模式选择区
+  .ap-modes {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    flex: 1;
+    padding: 16px;
+    border-right: 1px solid rgba(0, 240, 255, 0.06);
+  }
+
+  .mode-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border: 1px solid rgba(0, 240, 255, 0.08);
+    border-radius: 8px;
+    background: transparent;
+    color: $text-secondary;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 13px;
+    width: 100%;
+    text-align: left;
+    margin-bottom: 6px;
+
+    &:hover:not(:disabled) {
+      background: rgba(0, 240, 255, 0.05);
+      border-color: rgba(0, 240, 255, 0.2);
+      color: $text-primary;
+    }
+
+    &.active {
+      background: rgba(0, 240, 255, 0.1);
+      border-color: rgba(0, 240, 255, 0.4);
+      color: $accent-cyan;
+      font-weight: 600;
+
+      .mode-btn-icon {
+        color: $accent-cyan;
+      }
+    }
+
+    &:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    .mode-btn-icon {
+      font-size: 14px;
+      color: $text-muted;
+      transition: color 0.2s;
+      flex-shrink: 0;
+    }
+
+    .mode-btn-label {
+      flex: 1;
+    }
+  }
+
+  .mode-config-area {
+    margin-top: 6px;
+    flex: 1;
+  }
+
+  .mode-config-inline {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    background: rgba(0, 240, 255, 0.03);
+    border: 1px solid rgba(0, 240, 255, 0.08);
+    border-radius: 6px;
+    min-height: 32px;
+  }
+
+  .mode-config-label {
+    color: $text-secondary;
+    font-size: 12px;
+    white-space: nowrap;
+  }
+
+  .mode-config-desc {
+    color: $text-muted;
+    font-size: 12px;
+    font-style: italic;
+  }
+
+  .mode-config-input {
+    width: 56px;
+    padding: 2px 6px;
+    background: $bg-tertiary;
+    border: 1px solid rgba(0, 240, 255, 0.15);
+    border-radius: 4px;
+    color: $accent-cyan;
+    font-size: 13px;
+    font-family: $font-mono;
+    text-align: center;
+    outline: none;
+    transition: border-color 0.2s;
+
+    &:focus {
+      border-color: rgba(0, 240, 255, 0.4);
+    }
+
+    &:disabled {
+      opacity: 0.4;
+    }
+
+    &::-webkit-inner-spin-button,
+    &::-webkit-outer-spin-button {
+      opacity: 0;
+    }
+  }
+
+  .mode-config-select,
+  .mode-config-select-single {
+    background: $bg-tertiary;
+    border: 1px solid rgba(0, 240, 255, 0.15);
+    border-radius: 4px;
+    color: $text-primary;
+    font-size: 12px;
+    outline: none;
+    cursor: pointer;
+    max-width: 200px;
+
+    option {
+      background: $bg-tertiary;
+      color: $text-primary;
+    }
+
+    &:disabled {
+      opacity: 0.4;
+    }
+  }
+
+  .mode-config-select {
+    min-height: 60px;
+    max-height: 90px;
+    overflow-y: auto;
+    width: 100%;
+  }
+
+  .mode-config-select-single {
+    padding: 2px 6px;
+  }
+
+  // 操作区
+  .ap-action-area {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 16px 20px;
+    min-width: 200px;
+    flex-shrink: 0;
+    gap: 12px;
+  }
+
+  .action-row {
+    display: flex;
+    gap: 8px;
+    width: 100%;
+    justify-content: center;
+  }
+
+  .btn-start {
+    background: $gradient-primary !important;
+    border: none !important;
+    color: white !important;
+    font-weight: 700;
+    font-size: 14px;
+    padding: 0 24px !important;
+    height: 40px !important;
+    border-radius: 8px !important;
+    letter-spacing: 0.5px;
+    box-shadow: 0 4px 16px rgba(0, 240, 255, 0.25);
+
+    &:hover:not(:disabled) {
+      box-shadow: 0 6px 24px rgba(0, 240, 255, 0.4) !important;
+      transform: translateY(-1px);
+    }
+
+    &:disabled {
+      opacity: 0.5 !important;
+    }
+  }
+
+  .btn-pause {
+    background: rgba(250, 173, 20, 0.1) !important;
+    border: 1px solid rgba(250, 173, 20, 0.3) !important;
+    color: #faad14 !important;
+    font-weight: 600;
+    font-size: 14px;
+    padding: 0 20px !important;
+    height: 40px !important;
+    border-radius: 8px !important;
+
+    &:hover {
+      background: rgba(250, 173, 20, 0.2) !important;
+    }
+  }
+
+  .btn-resume {
+    background: linear-gradient(135deg, rgba(0, 240, 255, 0.2), rgba(0, 102, 255, 0.2)) !important;
+    border: 1px solid rgba(0, 240, 255, 0.3) !important;
+    color: $accent-cyan !important;
+    font-weight: 700;
+    font-size: 14px;
+    padding: 0 20px !important;
+    height: 40px !important;
+    border-radius: 8px !important;
+  }
+
+  .btn-stop {
+    background: rgba(255, 77, 79, 0.1) !important;
+    border: 1px solid rgba(255, 77, 79, 0.3) !important;
+    color: #ff4d4f !important;
+    font-weight: 600;
+    font-size: 14px;
+    padding: 0 20px !important;
+    height: 40px !important;
+    border-radius: 8px !important;
+
+    &:hover {
+      background: rgba(255, 77, 79, 0.2) !important;
+    }
+  }
+
+  .stopping-indicator {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: $text-secondary;
+    font-size: 13px;
+  }
+
+  .stopping-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #ff4d4f;
+    animation: blink 1s ease-in-out infinite;
+  }
+
+  .stopping-text {
+    font-style: italic;
+  }
+
+  // 状态指示器
+  .ap-live-stats {
+    width: 100%;
+  }
+
+  .status-indicators {
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+    width: 100%;
+  }
+
+  .status-indicator-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    min-width: 48px;
+  }
+
+  .status-indicator-icon {
+    font-size: 14px;
+  }
+
+  .status-indicator-value {
+    font-size: 18px;
+    font-weight: 700;
+    font-family: $font-mono;
+    line-height: 1;
+  }
+
+  .status-indicator-total {
+    font-size: 11px;
+    opacity: 0.7;
+  }
+
+  .status-indicator-label {
+    font-size: 10px;
+    color: $text-muted;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  // 进度条
+  .progress-section {
+    padding: 10px 20px 14px;
+    border-top: 1px solid rgba(0, 240, 255, 0.06);
+    flex-shrink: 0;
+  }
+
+  .progress-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+  }
+
+  .progress-label {
+    font-size: 11px;
+    color: $text-muted;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .progress-stats {
+    font-size: 12px;
+    color: $text-secondary;
+    font-family: $font-mono;
+  }
+
+  .progress-pct {
+    color: $accent-cyan;
+  }
+
+  .progress-track {
+    height: 5px;
+    background: rgba(255, 255, 255, 0.06);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.4s ease;
+
+    &.running {
+      background: linear-gradient(90deg, $accent-cyan, #00aaff);
+      box-shadow: 0 0 8px rgba(0, 240, 255, 0.5);
+      animation: progress-glow 2s ease-in-out infinite;
+    }
+
+    &.paused {
+      background: #faad14;
+    }
+  }
+}
+
+// ============================================
+// 动画
+// ============================================
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.6; transform: scale(0.8); }
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+@keyframes progress-glow {
+  0%, 100% { box-shadow: 0 0 8px rgba(0, 240, 255, 0.4); }
+  50% { box-shadow: 0 0 16px rgba(0, 240, 255, 0.7); }
+}
