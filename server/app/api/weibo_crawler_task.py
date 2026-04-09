@@ -304,3 +304,39 @@ async def stop_crawler() -> Dict[str, Any]:
         "success": True,
         "message": "已发送停止信号，任务将在当前操作完成后停止",
     }
+
+
+@router.post("/force-stop")
+async def force_stop_crawler() -> Dict[str, Any]:
+    """强制停止爬虫任务（无论当前状态，直接重置为 idle）"""
+    from app.database.crawler_task_dao import crawler_task_dao
+    task_service = app_state.get_crawler_task_service()
+
+    # 重置数据库中所有 STOPPING 状态的任务
+    try:
+        from app.database.mongo_pool import mongo_pool
+        client = mongo_pool._client
+        db = client.get_default_database()
+        collection = db["crawler_tasks"]
+
+        result = collection.update_many(
+            {"status": "stopping"},
+            {"$set": {"status": "idle"}}
+        )
+        logger.info(f"[ForceStop] 重置了 {result.modified_count} 个卡在 stopping 状态的任务")
+
+        # 同时重置内存中的任务状态
+        if task_service.current_task and task_service.status == TaskStatus.STOPPING:
+            task_service.current_task.status = TaskStatus.IDLE
+            task_service.current_task.completed_at = datetime.utcnow()
+
+        return {
+            "success": True,
+            "message": f"已强制停止，重置了 {result.modified_count} 个任务",
+        }
+    except Exception as e:
+        logger.error(f"[ForceStop] 强制停止失败: {e}")
+        return {
+            "success": False,
+            "error": f"强制停止失败: {str(e)}",
+        }

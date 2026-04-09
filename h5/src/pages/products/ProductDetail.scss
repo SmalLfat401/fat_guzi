@@ -15,6 +15,17 @@
     right: 0;
     z-index: 100;
     background: $bg-card;
+
+    .adm-navbar {
+      --title-font-size: 1.6rem;
+
+      .adm-navbar-main-title {
+        max-width: 60vw;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+    }
   }
 
   // 商品图片轮播
@@ -31,6 +42,7 @@
       width: 100%;
       height: 37.5rem;
       object-fit: cover;
+      cursor: pointer;
     }
 
     .image-indicator {
@@ -51,51 +63,96 @@
     background: $bg-card;
     margin-bottom: $spacing-md;
 
+    .product-title {
+      font-size: $font-size-xl;
+      font-weight: $font-weight-semibold;
+      color: $text-primary;
+      margin-bottom: $spacing-md;
+      line-height: 1.4;
+    }
+
     .price-section {
-      display: flex;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: $spacing-sm;
       margin-bottom: $spacing-md;
 
       .current-price {
         display: flex;
         align-items: baseline;
         gap: 0.2rem;
+        flex-wrap: wrap;
 
         .price-yuan {
-          font-size: $font-size-base;
-          color: $primary-color;
+          font-size: $font-size-lg;
+          color: #ff4d4f;
         }
 
         .price-value {
-          font-size: $font-size-4xl;
-          font-weight: $font-weight-bold;
-          color: $primary-color;
+          font-size: 2.4rem;
+          font-weight: 700;
+          color: #ff4d4f;
         }
 
         .original-price {
           margin-left: $spacing-sm;
-          font-size: $font-size-base;
+          font-size: $font-size-md;
           color: $text-tertiary;
           text-decoration: line-through;
         }
+
+        .discount-tag {
+          margin-left: $spacing-sm;
+        }
       }
 
-      .platform-tag {
-        font-size: $font-size-xs;
+      .price-row {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: $spacing-sm;
+      }
+
+      .price-ext-info {
+        display: flex;
+        gap: $spacing-lg;
+        margin-top: $spacing-sm;
+        flex-wrap: wrap;
+
+        .ext-item {
+          display: flex;
+          align-items: center;
+          gap: 0.3rem;
+          font-size: $font-size-sm;
+          color: $text-secondary;
+
+          svg {
+            width: 1.4rem;
+            height: 1.4rem;
+            color: $primary-color;
+          }
+        }
       }
     }
 
-    .product-title {
-      font-size: $font-size-xl;
-      font-weight: $font-weight-semibold;
-      color: $text-primary;
-      margin-bottom: $spacing-sm;
-      line-height: 1.4;
+    .commission-section {
+      margin-bottom: $spacing-md;
+
+      .commission-tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        padding: $spacing-xs $spacing-md;
+        background: linear-gradient(135deg, #fff7e6, #ffe7ba);
+        border-radius: $radius-md;
+        font-size: $font-size-sm;
+        color: #fa8c16;
+
+        svg {
+          width: 1.4rem;
+          height: 1.4rem;
+        }
+      }
     }
 
-    .product-desc {
+    .product-meta {
       font-size: $font-size-base;
       color: $text-secondary;
       line-height: 1.6;
@@ -105,9 +162,15 @@
     .product-meta {
       display: flex;
       gap: $spacing-lg;
-      margin-bottom: $spacing-md;
+      flex-wrap: wrap;
       font-size: $font-size-sm;
       color: $text-tertiary;
+
+      .meta-item {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+      }
     }
 
     .product-tags {
@@ -124,20 +187,194 @@
         color: $primary-color;
       }
     }
+  }
+
+  // 店铺信息卡片
+  .shop-card {
+    display: flex;
+    align-items: center;
+    gap: $spacing-md;
+    padding: $spacing-md;
+    background: $bg-card;
+    margin-bottom: $spacing-md;
+
+    .shop-icon {
+      width: 4rem;
+      height: 4rem;
+      background: linear-gradient(135deg, $primary-color, #722ed1);
+      border-radius: $radius-md;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      svg {
+        width: 2rem;
+        height: 2rem;
+        color: #fff;
+      }
+    }
 
     .shop-info {
+      flex: 1;
+
+      .shop-name {
+        font-size: $font-size-md;
+        font-weight: $font-weight-semibold;
+        color: $text-primary;
+        margin-bottom: 0.2rem;
+      }
+
+      .shop-platform {
+        font-size: $font-size-sm;
+        color: $text-tertiary;
+      }
+    }
+  }
+
+  // 多平台比价区域
+  .platform-section {
+    padding: $spacing-base;
+    background: $bg-card;
+    margin-bottom: $spacing-md;
+
+    .section-title {
       display: flex;
       align-items: center;
       gap: $spacing-sm;
-      font-size: $font-size-md;
-      color: $text-secondary;
-      padding-top: $spacing-md;
-      border-top: 1px solid $border-light;
-      cursor: pointer;
+      font-size: $font-size-lg;
+      font-weight: $font-weight-semibold;
+      color: $text-primary;
+      margin-bottom: $spacing-md;
 
-      .arrow-icon {
+      .title-icon {
+        font-size: $font-size-xl;
+      }
+
+      .platform-count {
         margin-left: auto;
+        font-size: $font-size-sm;
         color: $text-tertiary;
+        font-weight: $font-weight-normal;
+      }
+    }
+
+    .platform-list {
+      display: flex;
+      flex-direction: column;
+      gap: $spacing-sm;
+    }
+
+    .platform-card {
+      position: relative;
+      padding: $spacing-md;
+      background: $bg-page;
+      border-radius: $radius-md;
+      border: 2px solid transparent;
+      cursor: pointer;
+      transition: all 0.2s;
+
+      &:active {
+        opacity: 0.8;
+      }
+
+      &.selected {
+        border-color: $primary-color;
+        background: rgba($primary-color, 0.05);
+      }
+
+      &.lowest-price {
+        border-color: rgba(#52c41a, 0.3);
+      }
+
+      .platform-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: $spacing-sm;
+
+        .platform-info-left {
+          display: flex;
+          gap: $spacing-xs;
+        }
+
+        .platform-name-tag {
+          font-size: $font-size-sm;
+        }
+
+        .shop-type-tag {
+          font-size: $font-size-xs;
+        }
+
+        .platform-badges {
+          display: flex;
+          gap: $spacing-xs;
+        }
+
+        .badge-tag {
+          font-size: $font-size-xs;
+        }
+      }
+
+      .platform-details {
+        .price-info {
+          display: flex;
+          align-items: baseline;
+          gap: $spacing-sm;
+          margin-bottom: $spacing-xs;
+
+          .platform-price {
+            font-size: $font-size-xl;
+            font-weight: $font-weight-bold;
+            color: #ff4d4f;
+          }
+
+          .platform-original-price {
+            font-size: $font-size-sm;
+            color: $text-tertiary;
+            text-decoration: line-through;
+          }
+        }
+
+        .shop-info {
+          display: flex;
+          align-items: center;
+          gap: $spacing-sm;
+          font-size: $font-size-sm;
+          color: $text-tertiary;
+          margin-bottom: $spacing-xs;
+
+          .shop-title {
+            @include text-ellipsis;
+            max-width: 16rem;
+          }
+        }
+
+        .volume-info {
+          font-size: $font-size-xs;
+          color: $text-tertiary;
+          margin-bottom: $spacing-xs;
+        }
+
+        .coupon-info,
+        .tkl-info {
+          margin-top: $spacing-xs;
+        }
+      }
+
+      .platform-selected-indicator {
+        position: absolute;
+        top: $spacing-sm;
+        right: $spacing-sm;
+        display: flex;
+        align-items: center;
+        gap: 0.2rem;
+        font-size: $font-size-xs;
+        color: $primary-color;
+
+        .check-icon {
+          width: 1.4rem;
+          height: 1.4rem;
+        }
       }
     }
   }
@@ -218,30 +455,40 @@
       padding: 0.4rem;
     }
 
-    .star-active .star-icon {
+    .star-active :global(.star-icon) {
       fill: $primary-color;
       stroke: $primary-color;
     }
   }
 
-  // 底部安全区占位（配合 fixed action-bar）
+  // 底部安全区占位（配合 fixed action-bar，撑开内容避免被遮挡）
   .bottom-safe-area {
-    height: calc($tabbar-height + env(safe-area-inset-bottom));
+    height: calc(env(safe-area-inset-bottom) + 7rem);
   }
 
-  // 底部操作栏（浮在视口底部）
+  // 底部操作栏（浮在视口底部，z-index 高于 tabbar）
   .action-bar {
     position: fixed;
-    bottom: calc($tabbar-height + env(safe-area-inset-bottom));
+    bottom: 0;
     left: 0;
     right: 0;
     display: flex;
     align-items: center;
-    padding: $spacing-sm $spacing-base;
+    padding: $spacing-sm $spacing-md;
+    padding-bottom: calc($spacing-sm + env(safe-area-inset-bottom));
     background: $bg-card;
-    box-shadow: 0 -0.2rem 1rem rgba(0, 0, 0, 0.05);
-    z-index: 100;
+    box-shadow: 0 -0.2rem 1rem rgba(0, 0, 0, 0.08);
+    z-index: 250;
     gap: $spacing-sm;
+
+    .action-bar-left {
+      display: flex;
+      gap: $spacing-xs;
+    }
+
+    .action-bar-right {
+      flex: 1;
+    }
 
     .action-btn {
       display: flex;
@@ -249,13 +496,13 @@
       align-items: center;
       justify-content: center;
       gap: 0.2rem;
-      padding: $spacing-sm $spacing-lg;
+      padding: $spacing-sm $spacing-md;
       border: none;
       background: transparent;
       font-size: 1.1rem;
       color: $text-secondary;
       cursor: pointer;
-      min-width: 5rem;
+      min-width: 4.5rem;
 
       &:active {
         opacity: 0.7;
@@ -291,13 +538,26 @@
     }
 
     .buy-btn {
-      flex: 1;
-      --background-color: var(--primary-gradient);
+      width: 100%;
+      background: linear-gradient(135deg, #FF6B9D 0%, #FFB6C8 50%, #FF8EC4 100%) !important;
+      color: #ffffff;
+      border: none !important;
       border-radius: $radius-full;
       font-weight: $font-weight-semibold;
       font-size: $font-size-lg;
       height: 4.4rem;
       gap: $spacing-xs;
+      box-shadow: 0 0.4rem 1.2rem rgba(255, 107, 157, 0.35);
+      transition: all 0.3s ease;
+
+      &:active {
+        transform: scale(0.98);
+        box-shadow: 0 0.2rem 0.6rem rgba(255, 107, 157, 0.25);
+      }
+
+      span {
+        color: #ffffff;
+      }
     }
   }
 
@@ -342,22 +602,32 @@
   }
 }
 
-// 分享弹框样式（antd-mobile Dialog 内容）
-.share-dialog-content {
-  p {
-    font-size: $font-size-base;
-    color: $text-secondary;
-    margin-bottom: $spacing-md;
-    line-height: 1.6;
-  }
-
-  .share-link-box {
+// 复制弹窗样式
+.copy-modal-content {
+  .copy-text-preview {
     padding: $spacing-md;
     background: $bg-page;
     border-radius: $radius-sm;
     font-size: $font-size-sm;
-    color: $text-primary;
+    line-height: 1.8;
+    white-space: pre-wrap;
     word-break: break-all;
-    font-family: monospace;
+    margin-bottom: $spacing-md;
+
+    p {
+      margin: 0;
+    }
+  }
+
+  .copy-tip {
+    text-align: center;
+    font-size: $font-size-sm;
+    color: $text-tertiary;
+
+    span {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
   }
 }

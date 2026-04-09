@@ -1,37 +1,91 @@
 /**
- * 谷子商品类型定义
+ * 谷子商品类型定义 (H5)
+ * 适配后端 GuziProduct 数据结构
  */
 
-export interface GuziProduct {
+// 平台商品信息
+export interface PlatformInfo {
+  platformId: string;
+  platformName: string;
+  price: number;
+  originalPrice?: number;
+  discountPrice?: number;
+  commissionAmount?: number;
+  commissionRate?: number;
+  shopTitle?: string;
+  shopType?: string;
+  provcity?: string;
+  // 来自 item_detail 接口的字段
+  freeShipment?: boolean;       // 是否包邮
+  isPrepay?: boolean;           // 是否支持花呗/信用卡
+  volume?: number;               // 30天引导销量
+  annualVol?: string;            // 年销量
+  tkTotalSales?: string;         // 淘客引导付款金额
+  promotionTags?: string[];      // 推广标签（如：包邮、满减等）
+  couponAmount?: number;
+  couponUrl?: string;
+  tkl?: string;
+  url?: string;
+}
+
+// 谷子商品（适配后端 GuziProduct）
+export interface GuziProductH5 {
   id: string;
   name: string;
   cover: string;
   images: string[];
   price: number;
   originalPrice?: number;
+  discountPrice?: number;
   category?: string;
+  brandName?: string;             // 品牌名称
+  // tags: 展示用的标签名称数组（由 tagNames 填充）
   tags: string[];
+  tagNames: string[];
+  // 以下为后端原始标签 ID，用于筛选和映射
+  ipTags: string[];
+  categoryTags: string[];
   description?: string;
   stock?: number;
   sales?: number;
-  rating?: number;
+  annualVol?: string;             // 年销量
   shopName?: string;
   shopId?: string;
-  platform?: 'taobao' | 'jd' | 'pdd' | 'wechat';
+  platform?: 'alimama' | 'jd' | 'pdd' | 'wechat' | string;
+  platformName?: string;
   productUrl?: string;
+  tkl?: string;
+  commissionAmount?: number;
+  commissionRate?: number;
   isHot?: boolean;
+  isActive?: boolean;
   createdAt?: string;
   updatedAt?: string;
+  // 多平台信息
+  platforms: PlatformInfo[];
 }
 
+// 商品筛选条件
 export interface ProductFilter {
   category?: string;
   tags?: string[];
+  ipTag?: string;
+  categoryTag?: string;
   minPrice?: number;
   maxPrice?: number;
-  sortBy?: 'price' | 'sales' | 'rating' | 'createTime';
+  sortBy?: 'price' | 'sales' | 'commission' | 'createTime';
   sortOrder?: 'asc' | 'desc';
   keyword?: string;
+  is_active?: boolean;
+}
+
+// 标签类型
+export interface GuziTag {
+  _id: string;
+  name: string;
+  tagType: 'ip' | 'category';
+  color?: string;
+  isActive?: boolean;
 }
 
 /**
@@ -60,7 +114,7 @@ export interface CalendarEvent {
 export interface CalendarFilter {
   type?: CalendarEvent['type'];
   city?: string;
-  month?: string; // YYYY-MM
+  month?: string;
   status?: CalendarEvent['status'];
   keyword?: string;
 }
@@ -109,5 +163,5 @@ export interface HomeData {
   notices: Notice[];
   events: CalendarEvent[];
   releases: GuziRelease[];
-  products: GuziProduct[];
+  products: GuziProductH5[];
 }

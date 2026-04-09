@@ -103,7 +103,7 @@ class GuziTagDAO:
             self.collection.find(query)
             .skip(skip)
             .limit(limit)
-            .sort("created_at", ASCENDING)
+            .sort([("created_at", ASCENDING), ("_id", ASCENDING)])
         )
         tags = []
         for doc in cursor:

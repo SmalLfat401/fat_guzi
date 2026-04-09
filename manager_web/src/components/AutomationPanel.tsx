@@ -34,7 +34,7 @@ interface AutomationPanelProps {
   onSelectCategory: (categoryId: string | null) => void;
   selectedCategory: string | null;
   categories: Category[];
-  onAction: (action: 'start' | 'pause' | 'resume' | 'stop') => void;
+  onAction: (action: 'start' | 'pause' | 'resume' | 'stop' | 'force_stop') => void;
 }
 
 const MODE_OPTIONS: Array<{
@@ -247,6 +247,15 @@ const AutomationPanel: React.FC<AutomationPanelProps> = ({
             <span className="stopping-dot" />
             <span className="stopping-text">正在停止...</span>
           </div>
+          <Button
+            size="large"
+            danger
+            icon={<StopOutlined />}
+            onClick={() => onAction('force_stop')}
+            className="btn-force-stop"
+          >
+            强制停止
+          </Button>
         </div>
       );
     }

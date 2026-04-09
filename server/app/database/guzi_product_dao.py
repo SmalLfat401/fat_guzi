@@ -26,19 +26,21 @@ COLLECTION_NAME = "guzi_products"
 
 def _compute_convenience_fields(
     platforms: List[PlatformProduct],
-) -> tuple[Optional[float], Optional[str], Optional[float], Optional[str]]:
+) -> tuple[Optional[float], Optional[str], Optional[float], Optional[str], int]:
     """从 platforms 计算便捷字段"""
     if not platforms:
-        return None, None, None, None
+        return None, None, None, None, 0
 
     lowest = min(platforms, key=lambda p: p.price)
     highest = max(platforms, key=lambda p: p.commission_amount)
+    total_vol = sum(p.volume or 0 for p in platforms)
 
     return (
         lowest.price,
         lowest.platform_id,
         highest.commission_amount,
         highest.platform_id,
+        total_vol,
     )
 
 
@@ -79,12 +81,13 @@ class GuziProductDAO:
 
     def create(self, product: GuziProductCreate) -> GuziProduct:
         """创建单个商品"""
-        lp, lpp, hc, hcp = _compute_convenience_fields(product.platforms)
+        lp, lpp, hc, hcp, total_vol = _compute_convenience_fields(product.platforms)
 
         data = {
             "title": product.title,
             "image_url": product.image_url,
             "original_image_url": product.original_image_url or "",
+            "small_images": product.small_images,
             "platforms": [p.model_dump() for p in product.platforms],
             "description": product.description,
             "is_active": True,
@@ -92,8 +95,14 @@ class GuziProductDAO:
             "lowest_price_platform": lpp,
             "highest_commission": hc,
             "highest_commission_platform": hcp,
+            "total_volume": total_vol,
             "ip_tags": product.ip_tags,
             "category_tags": product.category_tags,
+            "brand_name": product.brand_name,
+            "category_id": product.category_id,
+            "category_name": product.category_name,
+            "level_one_category_id": product.level_one_category_id,
+            "level_one_category_name": product.level_one_category_name,
             "created_at": datetime.utcnow(),
             "updated_at": datetime.utcnow(),
         }
@@ -108,11 +117,12 @@ class GuziProductDAO:
 
         docs = []
         for product in products:
-            lp, lpp, hc, hcp = _compute_convenience_fields(product.platforms)
+            lp, lpp, hc, hcp, total_vol = _compute_convenience_fields(product.platforms)
             docs.append({
                 "title": product.title,
                 "image_url": product.image_url,
                 "original_image_url": product.original_image_url or "",
+                "small_images": product.small_images,
                 "platforms": [p.model_dump() for p in product.platforms],
                 "description": product.description,
                 "is_active": True,
@@ -120,8 +130,14 @@ class GuziProductDAO:
                 "lowest_price_platform": lpp,
                 "highest_commission": hc,
                 "highest_commission_platform": hcp,
+                "total_volume": total_vol,
                 "ip_tags": product.ip_tags,
                 "category_tags": product.category_tags,
+                "brand_name": product.brand_name,
+                "category_id": product.category_id,
+                "category_name": product.category_name,
+                "level_one_category_id": product.level_one_category_id,
+                "level_one_category_name": product.level_one_category_name,
                 "created_at": datetime.utcnow(),
                 "updated_at": datetime.utcnow(),
             })
@@ -158,7 +174,10 @@ class GuziProductDAO:
         if is_active is not None:
             query["is_active"] = is_active
         if search:
-            query["$text"] = {"$search": search}
+            query["$or"] = [
+                {"title": {"$regex": search, "$options": "i"}},
+                {"description": {"$regex": search, "$options": "i"}},
+            ]
         if ip_tag:
             query["ip_tags"] = ip_tag
         if category_tag:
@@ -167,7 +186,7 @@ class GuziProductDAO:
         cursor = (
             self.collection
             .find(query)
-            .sort("created_at", ASCENDING)
+            .sort("created_at", -1)  # 按创建时间倒序，最新的在前
             .skip(skip)
             .limit(limit)
         )
@@ -200,12 +219,13 @@ class GuziProductDAO:
         # 如果更新了 platforms，重新计算便捷字段
         if "platforms" in update_data:
             platforms = [PlatformProduct(**p) for p in update_data["platforms"]]
-            lp, lpp, hc, hcp = _compute_convenience_fields(platforms)
+            lp, lpp, hc, hcp, total_vol = _compute_convenience_fields(platforms)
             update_data.update({
                 "lowest_price": lp,
                 "lowest_price_platform": lpp,
                 "highest_commission": hc,
                 "highest_commission_platform": hcp,
+                "total_volume": total_vol,
             })
 
         update_data["updated_at"] = datetime.utcnow()

@@ -84,7 +84,7 @@ class CategoryDAO:
         if is_active is not None:
             query["is_active"] = is_active
 
-        cursor = self.collection.find(query).skip(skip).limit(limit).sort("created_at", ASCENDING)
+        cursor = self.collection.find(query).skip(skip).limit(limit).sort([("created_at", ASCENDING), ("_id", ASCENDING)])
         categories = []
         for doc in cursor:
             doc["_id"] = str(doc["_id"])

@@ -25,16 +25,36 @@ class NormalizedProduct(TypedDict):
     """规范化后的商品数据结构（来自搜索接口）"""
     title: str
     image_url: str
-    url: str                        # 原始 click_url（长链接）
+    url: str  # 原始 click_url（长链接）
     price: float
-    commission_rate: float          # 百分比，如 18.9
-    commission_amount: float         # 预估佣金
+    commission_rate: float  # 百分比，如 18.9
+    commission_amount: float  # 预估佣金
+    commission_type: Optional[str]  # COMMON / MKT / ZX
     platform_product_id: str
     coupon_amount: Optional[float]
     coupon_url: Optional[str]
+    coupon_share_url: Optional[str]
     shop_title: Optional[str]
-    description: Optional[str]
-    # 注：短链接和淘口令由 link_gen.py 单独生成，搜索接口不返回
+    seller_id: Optional[str]
+    user_type: Optional[int]  # 0=淘宝, 1=天猫
+    provcity: Optional[str]
+    real_post_fee: Optional[str]
+    volume: int
+    annual_vol: Optional[str]
+    tk_total_sales: Optional[str]
+    original_price: Optional[float]  # 标价/划线价（reserve_price）
+    zk_final_price: Optional[float]  # 折扣价（zk_final_price）
+    description: Optional[str]  # sub_title
+    # 多图
+    small_images: List[str]
+    # 类目/品牌
+    brand_name: Optional[str]
+    category_id: Optional[int]
+    category_name: Optional[str]
+    level_one_category_id: Optional[int]
+    level_one_category_name: Optional[str]
+    # 推广标签（promotion_tag_list）
+    promotion_tags: List[str]
 
 
 class SearchResult(TypedDict):
@@ -216,8 +236,6 @@ def _normalize_items(items: List[Dict[str, Any]]) -> List[NormalizedProduct]:
         "publish_info": {"click_url": "...", "income_info": {...}},
         ...
       }
-
-    旧版接口（扁平）直接返回商品字段。
     """
 
     normalized: List[NormalizedProduct] = []
@@ -229,7 +247,7 @@ def _normalize_items(items: List[Dict[str, Any]]) -> List[NormalizedProduct]:
         publish_info = it.get("publish_info") or {}
         income_info = (publish_info.get("income_info") or {}) if publish_info else {}
 
-        # ── 基本字段（优先级: item_basic_info > 顶层扁平） ──
+        # ── 基本字段 ──
         title = (
             _merge_field(item_basic, "title", "short_title", "real_title")
             or _merge_field(it, "title", "short_title", "real_title")
@@ -245,6 +263,59 @@ def _normalize_items(items: List[Dict[str, Any]]) -> List[NormalizedProduct]:
             str(item_basic.get("item_id", ""))
             or str(_merge_field(it, "item_id", "num_iid") or "")
         )
+        description = (
+            item_basic.get("sub_title")
+            or _merge_field(it, "item_description", "sub_title")
+        )
+
+        # ── 多图 small_images ──
+        raw_small: List[str] = []
+        small_images_wrapper = item_basic.get("small_images") or {}
+        if isinstance(small_images_wrapper, dict):
+            raw_small = small_images_wrapper.get("string") or []
+        elif isinstance(small_images_wrapper, list):
+            raw_small = small_images_wrapper
+        small_images: List[str] = [str(u) for u in raw_small if u]
+
+        # ── 类目/品牌 ──
+        brand_name = item_basic.get("brand_name") or None
+        category_id = item_basic.get("category_id")
+        if category_id:
+            try:
+                category_id = int(category_id)
+            except (ValueError, TypeError):
+                category_id = None
+        category_name = item_basic.get("category_name") or None
+        level_one_category_id = item_basic.get("level_one_category_id")
+        if level_one_category_id:
+            try:
+                level_one_category_id = int(level_one_category_id)
+            except (ValueError, TypeError):
+                level_one_category_id = None
+        level_one_category_name = item_basic.get("level_one_category_name") or None
+
+        # ── 销量 ──
+        volume_str = item_basic.get("volume")
+        try:
+            volume = int(volume_str) if volume_str is not None else 0
+        except (ValueError, TypeError):
+            volume = 0
+        annual_vol = item_basic.get("annual_vol") or None
+        tk_total_sales = item_basic.get("tk_total_sales") or None
+
+        # ── 店铺信息 ──
+        shop_title = item_basic.get("shop_title") or None
+        seller_id = item_basic.get("seller_id")
+        if seller_id:
+            seller_id = str(seller_id)
+        user_type = item_basic.get("user_type")
+        if user_type is not None:
+            try:
+                user_type = int(user_type)
+            except (ValueError, TypeError):
+                user_type = None
+        provcity = item_basic.get("provcity") or None
+        real_post_fee = item_basic.get("real_post_fee") or None
 
         # ── 价格 ──
         price_str = (
@@ -258,13 +329,19 @@ def _normalize_items(items: List[Dict[str, Any]]) -> List[NormalizedProduct]:
         except (ValueError, TypeError):
             price = 0.0
 
-        # ── 佣金率 ──
-        # upgrade 接口:
-        #   - publish_info.income_rate = "18.9"  (百分比字符串)
-        #   - publish_info.income_info.commission_rate = "1890" (basis_points)
-        # 旧版扁平接口:
-        #   - commission_rate = "1890" (basis_points)
-        # 取值优先级: income_rate (百分比) > commission_rate (basis_points)
+        original_price_str = price_info.get("reserve_price")
+        try:
+            original_price = float(original_price_str) if original_price_str else None
+        except (ValueError, TypeError):
+            original_price = None
+
+        zk_final_price_str = price_info.get("zk_final_price")
+        try:
+            zk_final_price = float(zk_final_price_str) if zk_final_price_str else None
+        except (ValueError, TypeError):
+            zk_final_price = None
+
+        # ── 佣金 ──
         rate_str = (
             publish_info.get("income_rate")
             or income_info.get("commission_rate")
@@ -277,10 +354,7 @@ def _normalize_items(items: List[Dict[str, Any]]) -> List[NormalizedProduct]:
         except (ValueError, TypeError):
             commission_rate = 0.0
 
-        # ── 预估佣金金额 ──
-        commission_amount_str = (
-            income_info.get("commission_amount")
-        )
+        commission_amount_str = income_info.get("commission_amount")
         try:
             commission_amount = (
                 float(commission_amount_str)
@@ -290,9 +364,13 @@ def _normalize_items(items: List[Dict[str, Any]]) -> List[NormalizedProduct]:
         except (ValueError, TypeError):
             commission_amount = round(price * commission_rate / 100.0, 2)
 
+        commission_type = publish_info.get("commission_type") or None
+
         # ── 优惠券 ──
         coupon_amount: Optional[float] = None
         coupon_url: Optional[str] = None
+        coupon_share_url: Optional[str] = None
+
         coupon_info = price_info.get("coupon_info") or {}
         if coupon_info:
             try:
@@ -300,24 +378,25 @@ def _normalize_items(items: List[Dict[str, Any]]) -> List[NormalizedProduct]:
             except (ValueError, TypeError):
                 coupon_amount = None
 
-        # ── 推广链接（长链接，搜索接口直接返回）─────────────────────────────
-        # 注：短链接和淘口令由 link_gen.py 单独接口生成
+        coupon_share_url = (
+            publish_info.get("coupon_share_url")
+            or _merge_field(it, "coupon_share_url", "coupon_click_url")
+        )
+
+        # ── 推广标签 ──
+        promotion_tags: List[str] = []
+        promo_tag_list = price_info.get("promotion_tag_list") or {}
+        promo_tag_map = promo_tag_list.get("promotion_tag_map_data") or []
+        for tag_entry in promo_tag_map:
+            tag_name = tag_entry.get("tag_name")
+            if tag_name:
+                promotion_tags.append(str(tag_name))
+
+        # ── 推广链接 ──
         click_url = (
             publish_info.get("click_url")
             or _merge_field(it, "click_url", "coupon_share_url", "coupon_click_url")
             or ""
-        )
-
-        # ── 店铺信息 ──
-        shop_title = (
-            item_basic.get("shop_title")
-            or _merge_field(it, "shop_title")
-        )
-
-        # ── 商品描述 ──
-        description = (
-            item_basic.get("sub_title")
-            or _merge_field(it, "item_description", "sub_title")
         )
 
         normalized.append(NormalizedProduct(
@@ -327,11 +406,29 @@ def _normalize_items(items: List[Dict[str, Any]]) -> List[NormalizedProduct]:
             price=price,
             commission_rate=round(commission_rate, 2),
             commission_amount=commission_amount,
+            commission_type=commission_type,
             platform_product_id=platform_product_id,
             coupon_amount=coupon_amount,
             coupon_url=coupon_url,
+            coupon_share_url=coupon_share_url,
             shop_title=shop_title,
+            seller_id=seller_id,
+            user_type=user_type,
+            provcity=provcity,
+            real_post_fee=real_post_fee,
+            volume=volume,
+            annual_vol=annual_vol,
+            tk_total_sales=tk_total_sales,
+            original_price=original_price,
+            zk_final_price=zk_final_price,
             description=description if description else None,
+            small_images=small_images,
+            brand_name=brand_name,
+            category_id=category_id,
+            category_name=category_name,
+            level_one_category_id=level_one_category_id,
+            level_one_category_name=level_one_category_name,
+            promotion_tags=promotion_tags,
         ))
 
     return normalized

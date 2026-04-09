@@ -77,7 +77,7 @@ class WeiboUserDAO:
         if category_ids:
             query["categories"] = {"$in": category_ids}
 
-        cursor = self.collection.find(query).skip(skip).limit(limit).sort("created_at", ASCENDING)
+        cursor = self.collection.find(query).skip(skip).limit(limit).sort([("created_at", ASCENDING), ("_id", ASCENDING)])
         users = []
         for doc in cursor:
             doc.pop("_id", None)

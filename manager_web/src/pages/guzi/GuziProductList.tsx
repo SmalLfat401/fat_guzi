@@ -3,6 +3,7 @@ import { message, Modal, Space, Tag, Input, Button, Dropdown, Select, Tooltip, I
 import type { MenuProps } from 'antd';
 import {
   CloudDownloadOutlined,
+  CloudSyncOutlined,
   ShoppingOutlined,
   AppstoreOutlined,
   UnorderedListOutlined,
@@ -163,6 +164,27 @@ export default function GuziProductList() {
   const [editingProduct, setEditingProduct] = useState<GuziProduct | null>(null);
   const [editForm] = Form.useForm();
 
+  // 获取详情相关状态
+  const [fetchDetailModalVisible, setFetchDetailModalVisible] = useState(false);
+  const [fetchingDetailId, setFetchingDetailId] = useState<string | null>(null); // 当前正在获取详情的商品ID
+  const [fetchDetailLoading, setFetchDetailLoading] = useState(false);
+  const [fetchDetailResult, setFetchDetailResult] = useState<{
+    success: boolean;
+    message: string;
+    detail?: {
+      title?: string;
+      price?: number;
+      commission_rate?: number;
+      commission_amount?: number;
+      volume?: number;
+      shop_title?: string;
+      free_shipment?: boolean;
+      is_prepay?: boolean;
+      promotion_tags?: string[];
+      small_images_count?: number;
+    };
+  } | null>(null);
+
   // 获取商品列表
   const fetchProducts = async () => {
     setLoading(true);
@@ -274,6 +296,7 @@ export default function GuziProductList() {
       const productsToCreate = selectedRows.map(item => ({
         title: item.title,
         image_url: item.image_url,
+        small_images: item.small_images || [],
         platforms: item.platforms,
         description: '从淘宝联盟搜索添加',
         ip_tags: ipTagIds,
@@ -355,6 +378,52 @@ export default function GuziProductList() {
     setEditModalVisible(true);
   };
 
+  // 打开获取详情弹窗
+  const handleOpenFetchDetail = (product: GuziProduct) => {
+    // 获取第一个 alimama 平台的 platform_product_id
+    const alimamaPlatform = product.platforms?.find(p => p.platform_id === 'alimama');
+    if (!alimamaPlatform?.platform_product_id) {
+      message.warning('该商品没有淘宝平台数据，无法获取详情');
+      return;
+    }
+    setFetchingDetailId(product.id);
+    setFetchDetailResult(null);
+    setFetchDetailModalVisible(true);
+  };
+
+  // 确认获取详情
+  const handleConfirmFetchDetail = async () => {
+    if (!fetchingDetailId) return;
+    const product = products.find(p => p.id === fetchingDetailId);
+    if (!product) return;
+    const alimamaPlatform = product.platforms.find(p => p.platform_id === 'alimama');
+    if (!alimamaPlatform?.platform_product_id) return;
+
+    setFetchDetailLoading(true);
+    try {
+      const result = await guziProductApi.fetchItemDetail({
+        item_id: alimamaPlatform.platform_product_id,
+        product_id: product.id,
+        generate_links: true,
+      });
+      setFetchDetailResult({
+        success: true,
+        message: result.is_new ? '新建商品成功' : result.platform_updated ? '详情已填充' : '无需更新',
+        detail: result.detail_filled || undefined,
+      });
+      message.success(result.is_new ? '新建商品成功' : '详情获取并填充成功');
+      fetchProducts();
+    } catch (error) {
+      const err = error as { response?: { data?: { detail?: string } } };
+      setFetchDetailResult({
+        success: false,
+        message: err.response?.data?.detail || (error as Error).message || '获取详情失败',
+      });
+    } finally {
+      setFetchDetailLoading(false);
+    }
+  };
+
   // Modal 动画完成后再填充表单数据
   const handleEditModalAfterOpenChange = (open: boolean) => {
     if (open && editingProduct) {
@@ -396,43 +465,105 @@ export default function GuziProductList() {
       title: '商品图片',
       dataIndex: 'image_url',
       key: 'image_url',
-      width: 100,
+      width: 140,
       fixed: 'left',
-      render: (url: string) => (
-        url ? (
-          <Image
-            src={url}
-            width={60}
-            height={60}
-            style={{ objectFit: 'cover', borderRadius: 4 }}
-            fallback="https://via.placeholder.com/60?text=No+Image"
-            preview={{ mask: <span>看大图</span> }}
-          />
-        ) : null
-      ),
+      render: (url: string, record: GuziProduct) => {
+        const allImages = [url, ...(record.small_images || [])].filter(Boolean);
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <Image.PreviewGroup>
+              <Image
+                src={url}
+                width={60}
+                height={60}
+                style={{ objectFit: 'cover', borderRadius: 4, cursor: 'zoom-in' }}
+                fallback="https://via.placeholder.com/60?text=No+Image"
+              />
+              {allImages.length > 1 && (
+                <div style={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                  {allImages.slice(1, 5).map((img, idx) => (
+                    <Image
+                      key={idx}
+                      src={img}
+                      width={28}
+                      height={28}
+                      style={{ objectFit: 'cover', borderRadius: 2, border: '1px solid #333' }}
+                      fallback="https://via.placeholder.com/28?text=?"
+                    />
+                  ))}
+                  {allImages.length > 5 && (
+                    <span style={{ fontSize: 10, color: '#8c8c8c', lineHeight: '28px' }}>+{allImages.length - 5}</span>
+                  )}
+                </div>
+              )}
+            </Image.PreviewGroup>
+          </div>
+        );
+      },
     },
     {
-      title: '商品标题',
-      dataIndex: 'title',
-      key: 'title',
-      width: 160,
-      render: (text: string) => (
-        <Tooltip title={text}>
-          <span className="product-title" style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{text}</span>
-        </Tooltip>
-      ),
+      title: '商品信息',
+      key: 'info',
+      width: 200,
+      render: (_, record: GuziProduct) => {
+        const rec = record.platforms[0];
+        return (
+          <div>
+            <Tooltip title={record.title}>
+              <div style={{ fontWeight: 600, marginBottom: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 190 }}>
+                {record.title}
+              </div>
+            </Tooltip>
+            {rec?.shop_title && (
+              <div style={{ fontSize: 11, color: '#8c8c8c', marginBottom: 2 }}>
+                <Tag color={rec.user_type === 1 ? 'red' : 'orange'} style={{ fontSize: 10, padding: '0 2px' }}>
+                  {rec.user_type === 1 ? '天猫' : '淘宝'}
+                </Tag>
+                <Tooltip title={rec.shop_title}>
+                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'inline-block', maxWidth: 100, verticalAlign: 'middle' }}>
+                    {rec.shop_title}
+                  </span>
+                </Tooltip>
+              </div>
+            )}
+            {rec?.provcity && (
+              <div style={{ fontSize: 11, color: '#8c8c8c' }}>{rec.provcity}</div>
+            )}
+            {record.brand_name && (
+              <Tag style={{ fontSize: 10, marginTop: 2 }}>品牌: {record.brand_name}</Tag>
+            )}
+            {record.category_name && (
+              <Tag color="purple" style={{ fontSize: 10, marginTop: 2 }}>{record.category_name}</Tag>
+            )}
+          </div>
+        );
+      },
     },
     {
-      title: '最低价',
-      key: 'lowest_price',
-      width: 100,
+      title: '价格 / 佣金',
+      key: 'price',
+      width: 120,
       render: (_, record: GuziProduct) => {
         if (!record.platforms || record.platforms.length === 0) return '-';
         const lowest = record.platforms.reduce((min, p) => p.price < min.price ? p : min, record.platforms[0]);
         return (
           <div>
-            <span style={{ color: '#52c41a', fontWeight: 600 }}>¥{lowest.price.toFixed(2)}</span>
-            <div style={{ fontSize: 12, color: '#8c8c8c' }}>{lowest.platform_name}</div>
+            <span style={{ color: '#52c41a', fontWeight: 700, fontSize: 15 }}>¥{lowest.price.toFixed(2)}</span>
+            {lowest.original_price && lowest.original_price > lowest.price && (
+              <div>
+                <span style={{ color: '#8c8c8c', textDecoration: 'line-through', fontSize: 11 }}>
+                  ¥{lowest.original_price.toFixed(2)}
+                </span>
+              </div>
+            )}
+            {record.highest_commission != null && (
+              <div style={{ marginTop: 2 }}>
+                <span style={{ color: '#fa8c16', fontSize: 12 }}>返 ¥{record.highest_commission.toFixed(2)}</span>
+              </div>
+            )}
+            {lowest.commission_rate > 0 && (
+              <div style={{ fontSize: 11, color: '#8c8c8c' }}>佣金率 {lowest.commission_rate}%</div>
+            )}
           </div>
         );
       },
@@ -532,6 +663,16 @@ export default function GuziProductList() {
       fixed: 'right',
       render: (_, record: GuziProduct) => (
         <Space size="small">
+          <Tooltip title="从淘宝获取最新详情并填充">
+            <Button
+              type="default"
+              size="small"
+              icon={<CloudSyncOutlined />}
+              onClick={() => handleOpenFetchDetail(record)}
+            >
+              获取详情
+            </Button>
+          </Tooltip>
           <Tooltip title="编辑标签">
             <Button
               type="primary"
@@ -591,62 +732,165 @@ export default function GuziProductList() {
       title: '商品图片',
       dataIndex: 'image_url',
       key: 'image_url',
-      width: 100,
-      render: (url: string) => (
-        <Image
-          src={url}
-          width={60}
-          height={60}
-          style={{ objectFit: 'cover', borderRadius: 4 }}
-          fallback="https://via.placeholder.com/60?text=No+Image"
-          preview={{ mask: <span>看大图</span> }}
-        />
-      ),
+      width: 140,
+      render: (url: string, record: ProductSearchItem) => {
+        const allImages = [url, ...(record.small_images || [])].filter(Boolean);
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <Image.PreviewGroup>
+              <Image
+                src={url}
+                width={60}
+                height={60}
+                style={{ objectFit: 'cover', borderRadius: 4, cursor: 'zoom-in' }}
+                fallback="https://via.placeholder.com/60?text=No+Image"
+              />
+              {allImages.length > 1 && (
+                <div style={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+                  {allImages.slice(1, 5).map((img, idx) => (
+                    <Image
+                      key={idx}
+                      src={img}
+                      width={28}
+                      height={28}
+                      style={{ objectFit: 'cover', borderRadius: 2, border: '1px solid #333', cursor: 'pointer' }}
+                      fallback="https://via.placeholder.com/28?text=?"
+                    />
+                  ))}
+                  {allImages.length > 5 && (
+                    <span style={{ fontSize: 10, color: '#8c8c8c', lineHeight: '28px' }}>+{allImages.length - 5}</span>
+                  )}
+                </div>
+              )}
+            </Image.PreviewGroup>
+          </div>
+        );
+      },
     },
     {
-      title: '商品标题',
-      dataIndex: 'title',
-      key: 'title',
-      width: 200,
-      ellipsis: true,
-      render: (text: string) => <Tooltip title={text}>{text}</Tooltip>,
-    },
-    {
-      title: '最低价',
-      key: 'lowest_price',
-      width: 100,
+      title: '商品信息',
+      key: 'info',
+      width: 220,
       render: (_, record) => (
         <div>
-          <span style={{ color: '#52c41a', fontWeight: 600 }}>¥{record.lowest_price.toFixed(2)}</span>
+          <Tooltip title={record.title}>
+            <div style={{ fontWeight: 600, marginBottom: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 200 }}>
+              {record.title}
+            </div>
+          </Tooltip>
+          {record.sub_title && (
+            <div style={{ fontSize: 11, color: '#8c8c8c', marginBottom: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {record.sub_title}
+            </div>
+          )}
+          {record.brand_name && (
+            <Tag style={{ fontSize: 11, marginBottom: 2 }}>品牌: {record.brand_name}</Tag>
+          )}
+          {record.category_name && (
+            <Tag style={{ fontSize: 11, marginBottom: 2 }} color="purple">{record.category_name}</Tag>
+          )}
+          {record.level_one_category_name && record.level_one_category_name !== record.category_name && (
+            <Tag style={{ fontSize: 11, marginBottom: 2 }}>{record.level_one_category_name}</Tag>
+          )}
+          {record.annual_vol && (
+            <Tag style={{ fontSize: 11, marginBottom: 2 }} color="blue">年销 {record.annual_vol}</Tag>
+          )}
         </div>
       ),
     },
     {
-      title: '最高佣金',
-      key: 'highest_commission',
-      width: 100,
-      render: (_, record) => (
-        <div>
-          <span style={{ color: '#fa8c16', fontWeight: 600 }}>¥{record.highest_commission.toFixed(2)}</span>
-        </div>
-      ),
+      title: '价格 / 佣金',
+      key: 'price',
+      width: 120,
+      render: (_, record) => {
+        const rec = record.platforms[0];
+        return (
+          <div>
+            <div>
+              <span style={{ color: '#52c41a', fontWeight: 700, fontSize: 15 }}>¥{record.lowest_price.toFixed(2)}</span>
+            </div>
+            {rec?.original_price && rec.original_price > record.lowest_price && (
+              <div>
+                <span style={{ color: '#8c8c8c', textDecoration: 'line-through', fontSize: 11 }}>
+                  ¥{rec.original_price.toFixed(2)}
+                </span>
+              </div>
+            )}
+            {rec?.zk_final_price && rec.zk_final_price > record.lowest_price && (
+              <div style={{ fontSize: 11, color: '#fa8c16' }}>
+                折扣价 ¥{rec.zk_final_price.toFixed(2)}
+              </div>
+            )}
+            <div style={{ marginTop: 4 }}>
+              <span style={{ color: '#fa8c16', fontSize: 12 }}>返 ¥{record.highest_commission.toFixed(2)}</span>
+            </div>
+            {rec?.commission_rate && (
+              <div style={{ fontSize: 11, color: '#8c8c8c' }}>佣金率 {rec.commission_rate}%</div>
+            )}
+          </div>
+        );
+      },
     },
     {
-      title: '平台',
-      key: 'platforms',
+      title: '店铺 / 销量',
+      key: 'shop',
+      width: 130,
+      render: (_, record) => {
+        const rec = record.platforms[0];
+        return (
+          <div>
+            {rec?.shop_title && (
+              <div style={{ fontSize: 12, marginBottom: 2 }}>
+                <Tag color={rec.user_type === 1 ? 'red' : 'orange'} style={{ fontSize: 10 }}>
+                  {rec.user_type === 1 ? '天猫' : '淘宝'}
+                </Tag>
+                <Tooltip title={rec.shop_title}>
+                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'inline-block', maxWidth: 70, verticalAlign: 'middle' }}>
+                    {rec.shop_title}
+                  </span>
+                </Tooltip>
+              </div>
+            )}
+            {rec?.provcity && (
+              <div style={{ fontSize: 11, color: '#8c8c8c' }}>{rec.provcity}</div>
+            )}
+            {record.volume && record.volume > 0 && (
+              <div style={{ fontSize: 11, color: '#8c8c8c', marginTop: 2 }}>30天 {record.volume} 件</div>
+            )}
+          </div>
+        );
+      },
+    },
+    {
+      title: '优惠标签',
+      key: 'promotion',
       width: 150,
-      render: (_, record) => (
-        <Space wrap>
-          {record.platforms.map(p => (
-            <Tag key={p.platform_id} color={
-              p.platform_id === 'alimama' ? 'orange' :
-              p.platform_id === 'jd' ? 'red' : 'blue'
-            }>
-              {p.platform_name}
-            </Tag>
-          ))}
-        </Space>
-      ),
+      render: (_, record) => {
+        const rec = record.platforms[0];
+        const tags = rec?.promotion_tags || [];
+        if (tags.length === 0) return <span style={{ color: '#8c8c8c', fontSize: 11 }}>—</span>;
+        return (
+          <Space wrap size={2}>
+            {tags.slice(0, 3).map((tag, idx) => (
+              <Tag
+                key={idx}
+                style={{ fontSize: 10 }}
+                color={
+                  tag.includes('包邮') ? 'green' :
+                  tag.includes('折') ? 'orange' :
+                  tag.includes('券') || tag.includes('减') ? 'red' :
+                  'blue'
+                }
+              >
+                {tag}
+              </Tag>
+            ))}
+            {rec?.coupon_amount && (
+              <Tag color="red" style={{ fontSize: 10 }}>券 {rec.coupon_amount}元</Tag>
+            )}
+          </Space>
+        );
+      },
     },
     {
       title: '推荐',
@@ -1295,6 +1539,187 @@ export default function GuziProductList() {
         )}
       </Modal>
 
+      {/* 获取详情弹窗 */}
+      <Modal
+        title={
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <CloudSyncOutlined />
+            <span>获取商品详情</span>
+          </div>
+        }
+        open={fetchDetailModalVisible}
+        onCancel={() => {
+          setFetchDetailModalVisible(false);
+          setFetchingDetailId(null);
+          setFetchDetailResult(null);
+        }}
+        footer={
+          fetchDetailResult ? (
+            <Button onClick={() => {
+              setFetchDetailModalVisible(false);
+              setFetchingDetailId(null);
+              setFetchDetailResult(null);
+            }}>
+              关闭
+            </Button>
+          ) : (
+            [
+              <Button key="cancel" onClick={() => {
+                setFetchDetailModalVisible(false);
+                setFetchingDetailId(null);
+                setFetchDetailResult(null);
+              }}>
+                取消
+              </Button>,
+              <Button
+                key="confirm"
+                type="primary"
+                icon={<CloudSyncOutlined />}
+                loading={fetchDetailLoading}
+                onClick={handleConfirmFetchDetail}
+              >
+                确认获取
+              </Button>,
+            ]
+          )
+        }
+        width={480}
+      >
+        {(() => {
+          const product = fetchingDetailId ? products.find(p => p.id === fetchingDetailId) : null;
+          const alimamaPlatform = product?.platforms?.find(p => p.platform_id === 'alimama');
+
+          if (!product || !alimamaPlatform) return null;
+
+          if (fetchDetailResult) {
+            if (fetchDetailResult.success) {
+              return (
+                <div className="fetch-detail-result success">
+                  <div className="result-header">
+                    <span style={{ fontSize: 24, color: '#52c41a' }}>✓</span>
+                    <span style={{ fontSize: 16, fontWeight: 600, color: '#52c41a' }}>{fetchDetailResult.message}</span>
+                  </div>
+                  {fetchDetailResult.detail && (
+                    <div className="result-fields">
+                      <div className="result-row">
+                        <span className="label">标题</span>
+                        <span className="value">{fetchDetailResult.detail.title || '-'}</span>
+                      </div>
+                      {fetchDetailResult.detail.price != null && (
+                        <div className="result-row">
+                          <span className="label">券后价</span>
+                          <span className="value" style={{ color: '#52c41a', fontWeight: 600 }}>
+                            ¥{fetchDetailResult.detail.price.toFixed(2)}
+                          </span>
+                        </div>
+                      )}
+                      {fetchDetailResult.detail.commission_rate != null && (
+                        <div className="result-row">
+                          <span className="label">佣金率</span>
+                          <span className="value" style={{ color: '#fa8c16' }}>
+                            {fetchDetailResult.detail.commission_rate}%
+                          </span>
+                        </div>
+                      )}
+                      {fetchDetailResult.detail.commission_amount != null && (
+                        <div className="result-row">
+                          <span className="label">预估佣金</span>
+                          <span className="value" style={{ color: '#fa8c16', fontWeight: 600 }}>
+                            ¥{fetchDetailResult.detail.commission_amount.toFixed(2)}
+                          </span>
+                        </div>
+                      )}
+                      {fetchDetailResult.detail.volume != null && (
+                        <div className="result-row">
+                          <span className="label">30天销量</span>
+                          <span className="value">{fetchDetailResult.detail.volume} 件</span>
+                        </div>
+                      )}
+                      {fetchDetailResult.detail.shop_title && (
+                        <div className="result-row">
+                          <span className="label">店铺</span>
+                          <span className="value">{fetchDetailResult.detail.shop_title}</span>
+                        </div>
+                      )}
+                      {fetchDetailResult.detail.free_shipment != null && (
+                        <div className="result-row">
+                          <span className="label">包邮</span>
+                          <span className="value">{fetchDetailResult.detail.free_shipment ? '是' : '否'}</span>
+                        </div>
+                      )}
+                      {fetchDetailResult.detail.is_prepay != null && (
+                        <div className="result-row">
+                          <span className="label">花呗</span>
+                          <span className="value">{fetchDetailResult.detail.is_prepay ? '支持' : '不支持'}</span>
+                        </div>
+                      )}
+                      {fetchDetailResult.detail.promotion_tags && fetchDetailResult.detail.promotion_tags.length > 0 && (
+                        <div className="result-row">
+                          <span className="label">推广标签</span>
+                          <Space wrap size={2}>
+                            {fetchDetailResult.detail.promotion_tags.slice(0, 5).map((tag, i) => (
+                              <Tag key={i} style={{ fontSize: 11 }}>{tag}</Tag>
+                            ))}
+                          </Space>
+                        </div>
+                      )}
+                      {fetchDetailResult.detail.small_images_count != null && fetchDetailResult.detail.small_images_count > 0 && (
+                        <div className="result-row">
+                          <span className="label">小图数量</span>
+                          <span className="value">{fetchDetailResult.detail.small_images_count} 张</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            } else {
+              return (
+                <div className="fetch-detail-result error">
+                  <div style={{ textAlign: 'center', padding: '20px 0' }}>
+                    <span style={{ fontSize: 24, color: '#ff4d4f' }}>✗</span>
+                    <div style={{ marginTop: 12, color: '#ff4d4f' }}>{fetchDetailResult.message}</div>
+                  </div>
+                </div>
+              );
+            }
+          }
+
+          return (
+            <div className="fetch-detail-confirm">
+              <div className="confirm-product">
+                <Image
+                  src={product.image_url}
+                  width={60}
+                  height={60}
+                  style={{ objectFit: 'cover', borderRadius: 8 }}
+                  fallback="https://via.placeholder.com/60?text=No+Image"
+                />
+                <div className="confirm-info">
+                  <div style={{ fontWeight: 600, marginBottom: 4 }}>{product.title}</div>
+                  <div style={{ fontSize: 12, color: '#8c8c8c' }}>
+                    商品ID: <span style={{ fontFamily: 'monospace' }}>{alimamaPlatform.platform_product_id}</span>
+                  </div>
+                </div>
+              </div>
+              <div className="confirm-desc">
+                <p>将从淘宝联盟获取该商品的最新详情，包含：</p>
+                <ul>
+                  <li>最新价格、佣金信息</li>
+                  <li>销量数据</li>
+                  <li>店铺信息、包邮/花呗标识</li>
+                  <li>推广标签（包邮、优惠券等）</li>
+                  <li>小图列表</li>
+                </ul>
+                <p style={{ color: '#fa8c16', fontSize: 12, marginTop: 8 }}>
+                  已有推广链接（url/short_link/淘口令）将被保留，不会被覆盖
+                </p>
+              </div>
+            </div>
+          );
+        })()}
+      </Modal>
+
       <style>{`
         .guzi-product-page {
           padding: 0;
@@ -1548,6 +1973,79 @@ export default function GuziProductList() {
 
         .info-value.highest {
           color: #fa8c16;
+        }
+
+        /* 获取详情弹窗 */
+        .fetch-detail-confirm {
+          padding: 8px 0;
+        }
+
+        .fetch-detail-confirm .confirm-product {
+          display: flex;
+          gap: 12px;
+          padding: 12px;
+          background: rgba(0, 240, 255, 0.05);
+          border-radius: 8px;
+          margin-bottom: 16px;
+        }
+
+        .fetch-detail-confirm .confirm-info {
+          flex: 1;
+          min-width: 0;
+        }
+
+        .fetch-detail-confirm .confirm-desc {
+          font-size: 13px;
+          color: #9ca3af;
+        }
+
+        .fetch-detail-confirm .confirm-desc ul {
+          margin: 8px 0;
+          padding-left: 20px;
+        }
+
+        .fetch-detail-confirm .confirm-desc li {
+          margin-bottom: 4px;
+        }
+
+        .fetch-detail-result {
+          padding: 16px 0;
+        }
+
+        .fetch-detail-result.success .result-header {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          margin-bottom: 16px;
+        }
+
+        .fetch-detail-result .result-fields {
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+          padding: 12px;
+          background: rgba(82, 196, 26, 0.05);
+          border-radius: 8px;
+        }
+
+        .fetch-detail-result .result-row {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          font-size: 13px;
+        }
+
+        .fetch-detail-result .result-row .label {
+          color: #8c8c8c;
+        }
+
+        .fetch-detail-result .result-row .value {
+          color: #e8e8e8;
+          text-align: right;
+          max-width: 280px;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
         }
       `}</style>
     </div>

@@ -131,7 +131,7 @@ class ExpoEventDAO:
         if sort_by == "dates.start":
             sort_field = "dates.start"
 
-        cursor = self.collection.find(query).skip(skip).limit(limit).sort(sort_field, DESCENDING)
+        cursor = self.collection.find(query).skip(skip).limit(limit).sort([(sort_field, DESCENDING), ("_id", DESCENDING)])
 
         events = []
         for doc in cursor:

@@ -91,8 +91,27 @@ async def _fetch_longtext(mblogid: str) -> Optional[str]:
         return None
 
 
-async def _sleep_until(target_time: float):
-    """等待直到达到目标时间"""
+async def _sleep_until(target_time: float, check_interval: float = 0.5):
+    """
+    等待直到达到目标时间，期间定期检查停止信号。
+    返回 True 表示正常完成，False 表示被停止信号中断。
+    """
+    from app.services.crawler_task_service import crawler_task_service
+    while time.time() < target_time:
+        remaining = target_time - time.time()
+        if remaining <= 0:
+            break
+        # 睡眠一个较小的时间间隔，期间检查停止信号
+        sleep_time = min(remaining, check_interval)
+        await asyncio.sleep(sleep_time)
+        # 检查停止信号
+        if crawler_task_service.status == TaskStatus.STOPPING:
+            return False
+    return True
+
+
+async def _sleep_until_simple(target_time: float):
+    """简单的等待函数，不检查停止信号（用于不需要可中断的场景）"""
     remaining = target_time - time.time()
     if remaining > 0:
         await asyncio.sleep(remaining)
@@ -187,14 +206,18 @@ async def run_weibo_crawler_task(
                 task_service.on_task_stopped(user.uid, user.nickname)
                 return
 
-            while task_service.status == TaskStatus.PAUSED:
-                await asyncio.sleep(0.5)
-                if task_service.status == TaskStatus.STOPPING:
-                    return
-
             # —— 用户间隔 ——
             target_time = last_user_time + USER_INTERVAL_SECONDS
-            await _sleep_until(target_time)
+            if not await _sleep_until(target_time):
+                # 被停止信号中断
+                task_service.add_log(
+                    uid=user.uid, nickname=user.nickname,
+                    action="stopped",
+                    message=f"任务被停止（处理到第 {idx + 1}/{len(users)} 个用户）",
+                    success=False
+                )
+                task_service.on_task_stopped(user.uid, user.nickname)
+                return
             last_user_time = time.time()
 
             # 再次检查（睡眠后可能被停止/暂停）
@@ -317,7 +340,9 @@ async def run_weibo_crawler_task(
             for mblogid in longtext_mblogids:
                 # 全文章间隔
                 target_time = last_longtext_time + LONGTEXT_INTERVAL_SECONDS
-                await _sleep_until(target_time)
+                if not await _sleep_until(target_time):
+                    # 被停止信号中断
+                    break
                 last_longtext_time = time.time()
 
                 # 检查停止/暂停
@@ -364,6 +389,15 @@ async def run_weibo_crawler_task(
                     message=f"任务暂停于用户 {idx + 1}/{len(users)}（处理全文时）",
                     success=True
                 )
+                return
+            if task_service.status == TaskStatus.STOPPING:
+                task_service.add_log(
+                    uid=user.uid, nickname=user.nickname,
+                    action="stopped",
+                    message=f"任务被停止（处理到第 {idx + 1}/{len(users)} 个用户）",
+                    success=False
+                )
+                task_service.on_task_stopped(user.uid, user.nickname)
                 return
 
     except Exception as e:

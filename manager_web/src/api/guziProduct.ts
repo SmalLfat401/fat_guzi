@@ -5,6 +5,8 @@ import type {
   GuziProductUpdate,
   ProductSearchItem,
   PlatformProduct,
+  FetchItemDetailRequest,
+  FetchItemDetailResponse,
 } from '../types/guziProduct';
 
 export const guziProductApi = {
@@ -95,6 +97,15 @@ export const guziProductApi = {
       `/guzi-products/generate-tkl/${productId}`,
       null,
       { params: { platform_index: platformIndex } }
+    );
+    return response.data;
+  },
+
+  // 根据淘宝商品ID获取详情并填充到谷子商品
+  fetchItemDetail: async (params: FetchItemDetailRequest) => {
+    const response = await apiClient.post<FetchItemDetailResponse>(
+      '/guzi-products/fetch-detail',
+      params
     );
     return response.data;
   },

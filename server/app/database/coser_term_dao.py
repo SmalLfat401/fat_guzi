@@ -106,7 +106,7 @@ class CoserTermDAO:
                 {"meaning": {"$regex": search, "$options": "i"}}
             ]
 
-        cursor = self.collection.find(query).skip(skip).limit(limit).sort("created_at", ASCENDING)
+        cursor = self.collection.find(query).skip(skip).limit(limit).sort([("created_at", ASCENDING), ("_id", ASCENDING)])
         terms = []
         for doc in cursor:
             doc["_id"] = str(doc["_id"])

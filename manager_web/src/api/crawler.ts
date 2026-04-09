@@ -329,4 +329,12 @@ export const crawlerApi = {
     const response = await apiClient.post('/weibo-crawler/stop');
     return response.data;
   },
+
+  /**
+   * 强制停止爬虫任务（无论当前状态，直接重置为 idle）
+   */
+  forceStopCrawlerTask: async (): Promise<{ success: boolean; message?: string; error?: string }> => {
+    const response = await apiClient.post('/weibo-crawler/force-stop');
+    return response.data;
+  },
 };

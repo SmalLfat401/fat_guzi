@@ -143,7 +143,26 @@ const WeiboUserTable: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [taskStatus?.status]);
 
-  const handleCrawlerAction = async (action: 'start' | 'pause' | 'resume' | 'stop') => {
+  const handleCrawlerAction = async (action: 'start' | 'pause' | 'resume' | 'stop' | 'force_stop') => {
+    // 强制停止直接调用 API
+    if (action === 'force_stop') {
+      setActionLoading('stop');
+      try {
+        const result = await crawlerApi.forceStopCrawlerTask();
+        if (!result.success) {
+          message.error(result.error || '强制停止失败');
+        } else {
+          message.success(result.message || '已强制停止');
+          await fetchCrawlerStatus();
+        }
+      } catch (err: any) {
+        message.error(err.message || '强制停止失败');
+      } finally {
+        setActionLoading(null);
+      }
+      return;
+    }
+
     setActionLoading(action);
     try {
       let result: { success: boolean; error?: string; message?: string };

@@ -32,6 +32,56 @@
     }
   }
 
+  // 筛选标签区域
+  .filter-section {
+    background: $bg-card;
+    border-bottom: 1px solid $border-color;
+    padding: $spacing-sm $spacing-base;
+
+    .filter-tags-section {
+      display: flex;
+      flex-direction: column;
+      gap: $spacing-xs;
+
+      .filter-row {
+        display: flex;
+        align-items: flex-start;
+        gap: $spacing-sm;
+
+        .filter-label {
+          font-size: $font-size-xs;
+          color: $text-tertiary;
+          min-width: 3rem;
+          padding-top: 0.4rem;
+        }
+
+        .filter-tags {
+          display: flex;
+          flex-wrap: wrap;
+          gap: $spacing-xs;
+        }
+
+        .filter-tag {
+          font-size: $font-size-xs;
+          padding: 0.2rem 0.6rem;
+          border-radius: $radius-xs;
+          cursor: pointer;
+          transition: all 0.2s;
+
+          &.active {
+            background: $primary-color;
+            color: #fff;
+          }
+
+          &:not(.active) {
+            background: $bg-page;
+            color: $text-secondary;
+          }
+        }
+      }
+    }
+  }
+
   .filter-tabs {
     :global(.adm-tabs-tab-list) {
       background: $bg-card;
@@ -43,6 +93,21 @@
 
   .products-content {
     padding: $spacing-base;
+  }
+
+  // 加载状态
+  .loading-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 4rem 0;
+    gap: $spacing-base;
+
+    .loading-text {
+      color: $text-tertiary;
+      font-size: $font-size-sm;
+    }
   }
 
   // 商品网格
@@ -63,11 +128,35 @@
       padding: 0;
     }
 
-    .product-image {
-      width: 100%;
-      height: 15rem;
-      object-fit: cover;
-      display: block;
+    .product-image-wrapper {
+      position: relative;
+
+      .product-image {
+        width: 100%;
+        height: 15rem;
+        object-fit: cover;
+        display: block;
+      }
+
+      // 多图数量标记
+      .image-count-badge {
+        position: absolute;
+        top: 0.5rem;
+        right: 0.5rem;
+        background: rgba(0, 0, 0, 0.6);
+        color: #fff;
+        font-size: $font-size-xs;
+        padding: 0.2rem 0.5rem;
+        border-radius: $radius-xs;
+        display: flex;
+        align-items: center;
+        gap: 0.2rem;
+
+        &::before {
+          content: '📷';
+          font-size: 0.9rem;
+        }
+      }
     }
 
     .product-info {
@@ -78,25 +167,37 @@
         font-weight: $font-weight-medium;
         color: $text-primary;
         margin-bottom: $spacing-xs;
-        @include text-ellipsis;
+        @include text-ellipsis-2;
+        line-height: 1.4;
+        min-height: 2.8rem;
       }
 
       .product-price-row {
         display: flex;
         align-items: baseline;
+        flex-wrap: wrap;
         gap: $spacing-xs;
         margin-bottom: $spacing-xs;
 
         .product-price {
           font-size: $font-size-lg;
           font-weight: $font-weight-semibold;
-          color: $primary-color;
+          color: #ff4d4f;
         }
 
         .original-price {
           font-size: $font-size-xs;
           color: $text-tertiary;
           text-decoration: line-through;
+        }
+
+        // 佣金标签
+        .commission-badge {
+          font-size: $font-size-xs;
+          color: #fa8c16;
+          background: rgba(250, 140, 22, 0.1);
+          padding: 0.1rem 0.4rem;
+          border-radius: $radius-xs;
         }
       }
 
@@ -108,17 +209,36 @@
 
         .tag-item {
           font-size: $font-size-xs;
-          padding: 0.2rem 0.6rem;
+          padding: 0.15rem 0.5rem;
           background: $bg-page;
           border-radius: $radius-xs;
           color: $text-secondary;
         }
       }
 
-      .shop-name {
-        font-size: $font-size-sm;
-        color: $text-tertiary;
-        @include text-ellipsis;
+      .product-meta-row {
+        display: flex;
+        align-items: center;
+        gap: $spacing-xs;
+        flex-wrap: wrap;
+
+        .platform-tag {
+          font-size: $font-size-xs;
+          padding: 0.1rem 0.4rem;
+        }
+
+        .shop-name {
+          font-size: $font-size-xs;
+          color: $text-tertiary;
+          @include text-ellipsis;
+          flex: 1;
+          min-width: 0;
+        }
+
+        .multi-platform-tag {
+          font-size: $font-size-xs;
+          padding: 0.1rem 0.4rem;
+        }
       }
     }
   }
@@ -133,5 +253,10 @@
   :global(.skeleton-text) {
     height: 4rem;
     margin: $spacing-sm;
+  }
+
+  // 底部安全区
+  .bottom-safe-area {
+    height: calc($tabbar-height + env(safe-area-inset-bottom));
   }
 }

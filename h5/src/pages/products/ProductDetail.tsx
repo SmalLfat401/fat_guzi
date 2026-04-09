@@ -6,15 +6,16 @@ import { useParams, useNavigate } from 'react-router-dom';
 import {
   NavBar,
   Swiper,
+  ImageViewer,
   Tag,
   Button,
   Skeleton,
   Toast,
-  Dialog,
+  ActionSheet,
 } from 'antd-mobile';
-import { ArrowLeft, Share, Star, Location, Clock, ShoppingCart } from '@/components/icons';
-import { fetchProductDetail } from '@/api';
-import type { GuziProduct } from '@/types';
+import { Share, Star, Clock, Fire, Wallet, Package, Store, Truck, CreditCard } from '@/components/icons';
+import { fetchProductDetail, fetchAllTags, generateTkl } from '@/api';
+import type { GuziProductH5 } from '@/types';
 import dayjs from 'dayjs';
 import './ProductDetail.scss';
 
@@ -43,30 +44,37 @@ const ProductDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
-  const [product, setProduct] = useState<GuziProduct | null>(null);
+  const [product, setProduct] = useState<GuziProductH5 | null>(null);
   const [activeImage, setActiveImage] = useState(0);
+  const [imageViewerVisible, setImageViewerVisible] = useState(false);
   const [isFavorited, setIsFavorited] = useState(false);
+  const [generatingTkl, setGeneratingTkl] = useState(false);
+  const [selectedPlatformIndex, setSelectedPlatformIndex] = useState(0);
 
-  useEffect(() => {
-    if (id) {
-      loadProduct(id);
-      setIsFavorited(getFavorites().includes(id));
-    }
-  }, [id]);
-
-  const loadProduct = async (productId: string) => {
+  // 初始化：加载标签映射 + 商品详情
+  const loadInitialData = async () => {
     try {
-      setLoading(true);
-      const data = await fetchProductDetail(productId);
-      setProduct(data);
+      const tagMap = await fetchAllTags();
+      if (id) {
+        const data = await fetchProductDetail(id, tagMap);
+        if (data) {
+          setProduct(data);
+          setIsFavorited(getFavorites().includes(id));
+        }
+      }
     } catch (error) {
-      console.error('Failed to load product:', error);
+      console.error('加载商品失败:', error);
       Toast.show({ content: '加载失败，请重试' });
     } finally {
       setLoading(false);
     }
   };
 
+  useEffect(() => {
+    loadInitialData();
+  }, []);
+
+  // 收藏/取消收藏
   const handleToggleFavorite = useCallback(() => {
     if (!product) return;
     const nowFavorited = toggleFavorite(product.id);
@@ -74,60 +82,90 @@ const ProductDetailPage: React.FC = () => {
     Toast.show({ content: nowFavorited ? '已添加收藏' : '已取消收藏' });
   }, [product]);
 
+  // 分享（复制本页链接）
   const handleShare = useCallback(async () => {
     if (!product) return;
-    const shareText = `发现一个超棒的谷子：${product.name}，仅需 ¥${product.price}`;
     const shareUrl = window.location.href;
-
-    if (navigator.share) {
-      try {
-        await navigator.share({ title: product.name, text: shareText, url: shareUrl });
-      } catch {
-        // 用户取消分享，不做处理
-      }
-    } else {
-      try {
-        await navigator.clipboard.writeText(shareUrl);
-        Toast.show({ content: '链接已复制到剪贴板' });
-      } catch {
-        Toast.show({ content: '复制失败，请长按复制' });
-      }
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      Toast.show({ content: '链接已复制到剪贴板' });
+    } catch {
+      Toast.show({ content: '复制失败，请长按复制' });
     }
   }, [product]);
 
-  const handleBuy = useCallback(() => {
+  // 复制淘口令
+  const handleCopyTkl = useCallback(async (tkl: string) => {
+    try {
+      await navigator.clipboard.writeText(tkl);
+      Toast.show({ content: '淘口令已复制，可直接打开淘宝APP' });
+    } catch {
+      Toast.show({ content: '复制失败，请长按复制' });
+    }
+  }, []);
+
+  // 实际执行淘口令生成并复制
+  const doGenerateAndCopy = useCallback(async (platformIndex: number) => {
     if (!product) return;
-    if (product.productUrl) {
-      window.location.href = product.productUrl;
-    } else {
-      Dialog.alert({
-        title: '购买提示',
-        content: '该商品暂无购买链接，请联系客服获取购买方式',
-        confirmText: '我知道了',
-      });
+
+    setGeneratingTkl(true);
+    try {
+      const updatedPlatform = await generateTkl(product.id, platformIndex);
+      if (updatedPlatform) {
+        setProduct(prev => {
+          if (!prev) return prev;
+          const newPlatforms = [...prev.platforms];
+          newPlatforms[platformIndex] = updatedPlatform;
+          return { ...prev, platforms: newPlatforms };
+        });
+        // 生成成功后自动复制组合好的淘口令格式
+        if (updatedPlatform.tkl) {
+          const title = product.name;
+          const price = updatedPlatform.price.toFixed(2);
+          // 组合格式：🎁【商品名】淘口令 + 到手 **价格元**
+          const tklText = `🎁【${title}】${updatedPlatform.tkl}\n到手 **${price}元**`;
+          await navigator.clipboard.writeText(tklText);
+          Toast.show({ content: '淘口令已复制，可直接打开淘宝APP' });
+        } else {
+          Toast.show({ content: '淘口令生成成功' });
+        }
+      }
+    } catch (error) {
+      Toast.show({ content: (error as Error).message || '生成淘口令失败' });
+    } finally {
+      setGeneratingTkl(false);
     }
   }, [product]);
 
-  const getPlatformTag = (platform?: GuziProduct['platform']) => {
-    if (!platform) return null;
-    const colors: Record<string, string> = {
-      taobao: '#FF5000',
-      jd: '#E1251B',
-      pdd: '#E1251B',
-      wechat: '#07C160',
-    };
-    const names: Record<string, string> = {
-      taobao: '淘宝',
-      jd: '京东',
-      pdd: '拼多多',
-      wechat: '微信',
-    };
-    return (
-      <Tag color={colors[platform]} className="platform-tag">
-        {names[platform]}
-      </Tag>
-    );
-  };
+  // 获取淘口令（点击后先选平台，再生成，生成后自动复制）
+  const handleGetTkl = useCallback(async () => {
+    if (!product) return;
+
+    const platforms = product.platforms || [];
+    if (platforms.length === 0) {
+      Toast.show({ content: '暂无购买链接' });
+      return;
+    }
+
+    // 如果有多个平台，先让用户选择
+    if (platforms.length > 1) {
+      const platformNames = platforms.map((p) => p.platformName || p.platformId);
+      ActionSheet.show({
+        actions: platformNames.map((name, index) => ({
+          text: name,
+          key: index,
+          onClick: () => {
+            setSelectedPlatformIndex(index);
+            doGenerateAndCopy(index);
+          },
+        })),
+        cancelText: '取消',
+      });
+    } else {
+      // 只有一个平台，直接生成并复制
+      doGenerateAndCopy(0);
+    }
+  }, [product, doGenerateAndCopy]);
 
   if (loading) {
     return (
@@ -156,139 +194,190 @@ const ProductDetailPage: React.FC = () => {
   }
 
   const images = product.images?.length ? product.images : [product.cover];
+  const currentPlatform = product.platforms?.[selectedPlatformIndex];
+  const hasTkl = !!currentPlatform?.tkl;
 
   return (
     <div className="product-detail-page">
       {/* 固定顶部导航 */}
       <div className="navbar-fixed">
-        <NavBar
-          onBack={() => navigate(-1)}
-          right={
-            <div className="nav-actions">
-              <span onClick={handleShare} className="action-icon-btn">
-                <Share />
-              </span>
-              <span onClick={handleToggleFavorite} className="action-icon-btn star-nav-btn">
-                <Star className={isFavorited ? 'star-active' : ''} />
-              </span>
-            </div>
-          }
-        />
+        <NavBar onBack={() => navigate(-1)}>
+          {product.name}
+        </NavBar>
       </div>
 
       {/* 商品图片轮播 */}
       <div className="product-images">
         <Swiper
-          autoplay
           loop
           onIndexChange={(index) => setActiveImage(index)}
           className="product-swiper"
         >
           {images.map((img, index) => (
             <Swiper.Item key={index}>
-              <img src={img} alt={product.name} className="product-image" />
+              <img
+                src={img}
+                alt={product.name}
+                className="product-image"
+                onClick={() => setImageViewerVisible(true)}
+              />
             </Swiper.Item>
           ))}
         </Swiper>
-        <div className="image-indicator">
-          {activeImage + 1} / {images.length}
-        </div>
+        {images.length > 1 && (
+          <div className="image-indicator">
+            {activeImage + 1} / {images.length}
+          </div>
+        )}
       </div>
 
       {/* 商品基本信息 */}
       <div className="product-base">
-        <div className="price-section">
-          <div className="current-price">
-            <span className="price-yuan">¥</span>
-            <span className="price-value">{product.price}</span>
-            {product.originalPrice && (
-              <span className="original-price">¥{product.originalPrice}</span>
-            )}
-          </div>
-          {product.platform && getPlatformTag(product.platform)}
-        </div>
-
         <h1 className="product-title">{product.name}</h1>
 
-        {product.description && (
-          <p className="product-desc">{product.description}</p>
-        )}
+        {/* 价格区域 */}
+        <div className="price-section">
+          <div className="price-row">
+            <div className="current-price">
+              <span className="price-yuan">¥</span>
+              <span className="price-value">{product.price.toFixed(2)}</span>
+              {product.originalPrice && product.originalPrice > product.price && (
+                <span className="original-price">¥{product.originalPrice.toFixed(2)}</span>
+              )}
+            </div>
+            {product.discountPrice && product.discountPrice < product.price && (
+              <Tag color="danger" className="discount-tag">
+                券后¥{product.discountPrice.toFixed(2)}
+              </Tag>
+            )}
+          </div>
 
-        {/* 商品元信息 */}
-        <div className="product-meta">
-          {product.stock !== undefined && (
-            <span className="meta-item">
-              {product.stock > 0 ? `库存 ${product.stock} 件` : '已售罄'}
-            </span>
-          )}
-          {product.sales !== undefined && (
-            <span className="meta-item">已售 {product.sales} 件</span>
-          )}
-          {product.rating !== undefined && (
-            <span className="meta-item">⭐ {product.rating}</span>
+          {/* 销量和年销量 */}
+          <div className="price-ext-info">
+            {product.sales !== undefined && product.sales > 0 && (
+              <span className="ext-item">
+                <Fire /> 30天 {product.sales} 件
+              </span>
+            )}
+            {product.annualVol && (
+              <span className="ext-item">
+                <Package /> 年销 {product.annualVol}
+              </span>
+            )}
+            {/* 包邮和花呗标签 */}
+            {currentPlatform?.freeShipment && (
+              <span className="ext-item free-shipping">
+                <Truck /> 包邮
+              </span>
+            )}
+            {currentPlatform?.isPrepay && (
+              <span className="ext-item prepay">
+                <CreditCard /> 花呗
+              </span>
+            )}
+          </div>
+
+          {/* 推广标签 */}
+          {currentPlatform?.promotionTags && currentPlatform.promotionTags.length > 0 && (
+            <div className="promotion-tags">
+              {currentPlatform.promotionTags.slice(0, 4).map((tag, idx) => (
+                <Tag key={idx} className="promotion-tag" color={tag.includes('包邮') ? 'success' : 'warning'}>
+                  {tag}
+                </Tag>
+              ))}
+            </div>
           )}
         </div>
 
+        {/* 佣金信息 */}
+        {product.commissionRate !== undefined && product.commissionRate > 0 && (
+          <div className="commission-section">
+            <div className="commission-tag">
+              <Wallet /> 返佣 {product.commissionRate}% ≈ ¥{product.commissionAmount?.toFixed(2) || '0.00'}
+            </div>
+          </div>
+        )}
+
+        {/* 商品标签 */}
         {product.tags?.length > 0 && (
           <div className="product-tags">
-            {product.tags.map((tag) => (
-              <Tag key={tag} className="tag-item">{tag}</Tag>
+            {product.tags.map((tag, idx) => (
+              <Tag key={idx} className="tag-item" color={idx === 0 ? 'primary' : 'medium'}>{tag}</Tag>
             ))}
           </div>
         )}
 
-        {product.shopName && (
-          <div className="shop-info">
-            <Location />
-            <span>{product.shopName}</span>
-            <svg className="arrow-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M9 18L15 12L9 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          </div>
-        )}
       </div>
 
-      {/* 商品详情 */}
-      <div className="detail-section">
-        <div className="section-title">
-          <span className="title-icon">📦</span>
-          <span>商品详情</span>
-        </div>
-        <div className="detail-content">
-          {product.description && <p>{product.description}</p>}
-          {product.createdAt && (
-            <div className="detail-meta">
-              <Clock />
-              <span>上架时间：{dayjs(product.createdAt).format('YYYY-MM-DD')}</span>
+      {/* 店铺信息卡片 */}
+      {product.shopName && (
+        <div className="shop-card">
+          <div className="shop-icon">
+            <Store />
+          </div>
+          <div className="shop-info">
+            <div className="shop-name">{product.shopName}</div>
+            <div className="shop-meta-row">
+              {currentPlatform?.shopType && (
+                <Tag color={currentPlatform.shopType === '天猫' ? 'danger' : 'warning'} className="shop-type-tag">
+                  {currentPlatform.shopType}
+                </Tag>
+              )}
+              {currentPlatform?.provcity && (
+                <span className="shop-provcity">{currentPlatform.provcity}</span>
+              )}
+              {product.brandName && (
+                <Tag color="primary" className="brand-tag">{product.brandName}</Tag>
+              )}
             </div>
-          )}
-          <div className="detail-id">商品ID：{product.id}</div>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* 底部安全区占位 */}
       <div className="bottom-safe-area" />
 
       {/* 底部操作栏 */}
       <div className="action-bar">
-        <Button className="action-btn favorite-btn" onClick={handleToggleFavorite}>
-          <Star className={isFavorited ? 'star-active' : ''} />
-          <span>{isFavorited ? '已收藏' : '收藏'}</span>
-        </Button>
-        <Button className="action-btn service-btn" onClick={handleShare}>
-          <Share />
-          <span>分享</span>
-        </Button>
-        <Button
-          color="primary"
-          className="buy-btn"
-          onClick={handleBuy}
-          disabled={product.stock === 0}
-        >
-          <ShoppingCart />
-          <span>立即购买</span>
-        </Button>
+        <div className="action-bar-left">
+          <Button className="action-btn favorite-btn" onClick={handleToggleFavorite}>
+            <Star className={isFavorited ? 'star-active' : ''} />
+            <span>{isFavorited ? '已收藏' : '收藏'}</span>
+          </Button>
+          <Button className="action-btn service-btn" onClick={handleShare}>
+            <Share />
+            <span>分享</span>
+          </Button>
+        </div>
+        <div className="action-bar-right">
+          {hasTkl ? (
+            <Button
+              color="primary"
+              className="buy-btn"
+              onClick={() => {
+                const title = product.name;
+                const price = currentPlatform.price.toFixed(2);
+                const tklText = `🎁【${title}】${currentPlatform.tkl}\n到手 **${price}元**`;
+                handleCopyTkl(tklText);
+              }}
+            >
+              <span>复制淘口令</span>
+            </Button>
+          ) : (
+            <Button color="primary" className="buy-btn" onClick={handleGetTkl} loading={generatingTkl}>
+              <span>获取淘口令</span>
+            </Button>
+          )}
+        </div>
       </div>
+
+      {/* 图片大图预览 */}
+      <ImageViewer.Multi
+        images={images}
+        defaultIndex={activeImage}
+        visible={imageViewerVisible}
+        onClose={() => setImageViewerVisible(false)}
+      />
     </div>
   );
 };

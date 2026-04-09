@@ -19,7 +19,7 @@ import {
 } from 'antd-mobile';
 import { ArrowRight, Location, Clock, Fire, Gift } from '@/components/icons';
 import { fetchHomeData } from '@/api';
-import type { Notice, CalendarEvent, GuziRelease, GuziProduct } from '@/types';
+import type { Notice, CalendarEvent, GuziRelease, GuziProductH5 } from '@/types';
 import dayjs from 'dayjs';
 
 import './index.scss';
@@ -30,7 +30,7 @@ const HomePage: React.FC = () => {
   const [notices, setNotices] = useState<Notice[]>([]);
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [releases, setReleases] = useState<GuziRelease[]>([]);
-  const [products, setProducts] = useState<GuziProduct[]>([]);
+  const [products, setProducts] = useState<GuziProductH5[]>([]);
 
   useEffect(() => {
     loadData();
@@ -277,9 +277,9 @@ const HomePage: React.FC = () => {
                     <div className="product-info">
                       <h4 className="product-title">{product.name}</h4>
                       <div className="product-price-row">
-                        <span className="product-price">¥{product.price}</span>
+                        <span className="product-price">¥{product.price.toFixed(2)}</span>
                         {product.originalPrice && (
-                          <span className="original-price">¥{product.originalPrice}</span>
+                          <span className="original-price">¥{product.originalPrice.toFixed(2)}</span>
                         )}
                       </div>
                       {product.tags && product.tags.length > 0 && (
