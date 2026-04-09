@@ -168,11 +168,14 @@ const ProductsPage: React.FC = () => {
             )}
           </div>
 
-          {/* 标签 */}
-          {product.tags && product.tags.length > 0 && (
+          {/* 标签：IP标签 + 类别标签分开展示 */}
+          {product.ipTags?.length > 0 && (
             <div className="product-tags">
-              {product.tags.slice(0, 3).map((tag, idx) => (
-                <Tag key={idx} className="tag-item" color={idx === 0 ? 'primary' : 'medium'}>{tag}</Tag>
+              {product.ipTags.slice(0, 2).map((tag, idx) => (
+                <Tag key={`ip-${idx}`} className="tag-item tag-ip">{tag}</Tag>
+              ))}
+              {product.categoryTags?.slice(0, 1).map((tag, idx) => (
+                <Tag key={`cat-${idx}`} className="tag-item tag-category">{tag}</Tag>
               ))}
             </div>
           )}
@@ -212,7 +215,7 @@ const ProductsPage: React.FC = () => {
             >
               全部
             </Tag>
-            {ipTags.slice(0, 6).map(tag => (
+            {ipTags.map(tag => (
               <Tag
                 key={tag._id}
                 className={`filter-tag ${selectedIpTag === tag._id ? 'active' : ''}`}
@@ -237,7 +240,7 @@ const ProductsPage: React.FC = () => {
             >
               全部
             </Tag>
-            {categoryTags.slice(0, 6).map(tag => (
+            {categoryTags.map(tag => (
               <Tag
                 key={tag._id}
                 className={`filter-tag ${selectedCategoryTag === tag._id ? 'active' : ''}`}
@@ -260,7 +263,7 @@ const ProductsPage: React.FC = () => {
         <NavBar onBack={() => navigate(-1)}>精选好物</NavBar>
       </div>
 
-      {/* SearchBar + TabBar（sticky 吸附在导航栏下方） */}
+      {/* SearchBar + 标签筛选（sticky 整体吸附在导航栏下方） */}
       <div className="products-sticky-header">
         <SearchBar
           placeholder="搜索谷子商品..."
@@ -268,14 +271,14 @@ const ProductsPage: React.FC = () => {
           onChange={handleSearch}
           className="search-bar"
         />
-      </div>
 
-      {/* 标签筛选区域 */}
-      {!loading && (ipTags.length > 0 || categoryTags.length > 0) && (
-        <div className="filter-section">
-          {renderFilterTags()}
-        </div>
-      )}
+        {/* 标签筛选区域 */}
+        {!loading && (ipTags.length > 0 || categoryTags.length > 0) && (
+          <div className="filter-section">
+            {renderFilterTags()}
+          </div>
+        )}
+      </div>
 
       <Tabs
         activeKey={activeTab}

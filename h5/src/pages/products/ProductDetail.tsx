@@ -298,11 +298,14 @@ const ProductDetailPage: React.FC = () => {
           </div>
         )}
 
-        {/* 商品标签 */}
-        {product.tags?.length > 0 && (
+        {/* 商品标签：IP标签 + 类别标签分开展示 */}
+        {(product.ipTags?.length || product.categoryTags?.length) && (
           <div className="product-tags">
-            {product.tags.map((tag, idx) => (
-              <Tag key={idx} className="tag-item" color={idx === 0 ? 'primary' : 'medium'}>{tag}</Tag>
+            {product.ipTags?.map((tag, idx) => (
+              <Tag key={`ip-${idx}`} className="tag-item tag-ip">{tag}</Tag>
+            ))}
+            {product.categoryTags?.map((tag, idx) => (
+              <Tag key={`cat-${idx}`} className="tag-item tag-category">{tag}</Tag>
             ))}
           </div>
         )}

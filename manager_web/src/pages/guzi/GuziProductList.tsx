@@ -663,14 +663,14 @@ export default function GuziProductList() {
       fixed: 'right',
       render: (_, record: GuziProduct) => (
         <Space size="small">
-          <Tooltip title="从淘宝获取最新详情并填充">
+          <Tooltip title={record.detail_fetched ? '查看商品详情' : '从淘宝获取最新详情并填充'}>
             <Button
               type="default"
               size="small"
-              icon={<CloudSyncOutlined />}
+              icon={record.detail_fetched ? <StarOutlined /> : <CloudSyncOutlined />}
               onClick={() => handleOpenFetchDetail(record)}
             >
-              获取详情
+              {record.detail_fetched ? '查看详情' : '抓取详情'}
             </Button>
           </Tooltip>
           <Tooltip title="编辑标签">
@@ -1544,7 +1544,10 @@ export default function GuziProductList() {
         title={
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <CloudSyncOutlined />
-            <span>获取商品详情</span>
+            <span>{(() => {
+              const p = fetchingDetailId ? products.find(x => x.id === fetchingDetailId) : null;
+              return p?.detail_fetched ? '商品详情' : '获取商品详情';
+            })()}</span>
           </div>
         }
         open={fetchDetailModalVisible}
@@ -1578,7 +1581,10 @@ export default function GuziProductList() {
                 loading={fetchDetailLoading}
                 onClick={handleConfirmFetchDetail}
               >
-                确认获取
+                {(() => {
+                  const p = fetchingDetailId ? products.find(x => x.id === fetchingDetailId) : null;
+                  return p?.detail_fetched ? '刷新详情' : '确认获取';
+                })()}
               </Button>,
             ]
           )

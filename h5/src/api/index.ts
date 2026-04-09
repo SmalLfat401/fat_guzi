@@ -97,9 +97,13 @@ function transformProduct(
   const allTagIds = [...ipTagIds, ...categoryTagIds];
 
   // 将标签 ID 映射为标签名称
-  const tagNames: string[] = allTagIds
+  const ipTagNames: string[] = ipTagIds
     .map((id) => tagIdToName.get(id))
     .filter(Boolean) as string[];
+  const categoryTagNames: string[] = categoryTagIds
+    .map((id) => tagIdToName.get(id))
+    .filter(Boolean) as string[];
+  const allTagNames = [...ipTagNames, ...categoryTagNames];
 
   return {
     id: product.id,
@@ -112,11 +116,11 @@ function transformProduct(
     category: product.category_name || '',
     brandName: product.brand_name || undefined,
     // tags: 用于展示的名称数组（由标签管理器填充）
-    tags: tagNames,
-    tagNames: tagNames,
-    // 保留原始标签 ID
-    ipTags: ipTagIds,
-    categoryTags: categoryTagIds,
+    tags: allTagNames,
+    tagNames: allTagNames,
+    // 保留原始标签 ID，转换为已映射的名称
+    ipTags: ipTagNames,
+    categoryTags: categoryTagNames,
     description: product.description || '',
     stock: undefined,
     sales: lowestPricePlatform.volume || undefined,

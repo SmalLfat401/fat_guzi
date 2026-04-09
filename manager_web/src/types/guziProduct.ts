@@ -57,6 +57,8 @@ export interface GuziProduct {
   category_name?: string;     // 商品类目名称
   level_one_category_id?: number; // 一级类目ID
   level_one_category_name?: string; // 一级类目名称
+  // 是否已调用过 fetch-detail 接口（用于前端区分按钮文案）
+  detail_fetched?: boolean;
   created_at: string;
   updated_at: string;
 }

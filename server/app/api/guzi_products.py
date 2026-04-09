@@ -792,7 +792,7 @@ async def fetch_item_detail_and_fill(
             updated_platforms.append(new_pp)
             platform_updated = True
 
-        guzi_product_dao.update(body.product_id, GuziProductUpdate(platforms=updated_platforms))
+        guzi_product_dao.update(body.product_id, GuziProductUpdate(platforms=updated_platforms, detail_fetched=True))
         target_product_id = body.product_id
 
     else:
@@ -815,6 +815,8 @@ async def fetch_item_detail_and_fill(
         )
         created = guzi_product_dao.create(product_create)
         target_product_id = created.id
+        # 新建模式下同样标记为已抓取详情
+        guzi_product_dao.update(target_product_id, GuziProductUpdate(detail_fetched=True))
 
     return FetchItemDetailResponse(
         product_id=target_product_id,

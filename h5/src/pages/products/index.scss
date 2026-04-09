@@ -18,75 +18,76 @@
     background: $bg-card;
   }
 
-  // SearchBar + TabBar（sticky 吸附在导航栏下方）
+  // SearchBar + 标签筛选（sticky 整体吸附在导航栏下方）
   .products-sticky-header {
     position: sticky;
-    top: $nav-height;
+    top: $nav-height - 0.3rem;
     z-index: 90;
     background: $bg-card;
+    border-bottom: 1px solid $border-color;
+    padding-top: 0.3rem;
 
     .search-bar {
       background: $bg-card;
       padding: $spacing-sm $spacing-base;
-      border-bottom: 1px solid $border-color;
     }
-  }
 
-  // 筛选标签区域
-  .filter-section {
-    background: $bg-card;
-    border-bottom: 1px solid $border-color;
-    padding: $spacing-sm $spacing-base;
+    // 筛选标签区域
+    .filter-section {
+      padding: $spacing-sm $spacing-base;
+      border-top: 1px solid $border-color;
 
-    .filter-tags-section {
-      display: flex;
-      flex-direction: column;
-      gap: $spacing-xs;
-
-      .filter-row {
+      .filter-tags-section {
         display: flex;
-        align-items: flex-start;
-        gap: $spacing-sm;
+        flex-direction: column;
+        gap: $spacing-xs;
 
-        .filter-label {
-          font-size: $font-size-xs;
-          color: $text-tertiary;
-          min-width: 3rem;
-          padding-top: 0.4rem;
-        }
-
-        .filter-tags {
+        .filter-row {
           display: flex;
-          flex-wrap: wrap;
-          gap: $spacing-xs;
-        }
+          align-items: flex-start;
+          gap: $spacing-sm;
 
-        .filter-tag {
-          font-size: $font-size-xs;
-          padding: 0.2rem 0.6rem;
-          border-radius: $radius-xs;
-          cursor: pointer;
-          transition: all 0.2s;
-
-          &.active {
-            background: $primary-color;
-            color: #fff;
+          .filter-label {
+            font-size: $font-size-xs;
+            color: $text-tertiary;
+            min-width: 3rem;
+            padding-top: 0.4rem;
           }
 
-          &:not(.active) {
-            background: $bg-page;
-            color: $text-secondary;
+          .filter-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: $spacing-xs;
+          }
+
+          .filter-tag {
+            font-size: $font-size-xs;
+            padding: 0.2rem 0.6rem;
+            border-radius: $radius-xs;
+            cursor: pointer;
+            transition: all 0.2s;
+
+            &.active {
+              background: $primary-color;
+              color: #fff;
+            }
+
+            &:not(.active) {
+              background: $bg-page;
+              color: $text-secondary;
+            }
           }
         }
       }
     }
   }
 
+  // Tabs 栏吸附在 sticky-header 下方
   .filter-tabs {
     :global(.adm-tabs-tab-list) {
       background: $bg-card;
       position: sticky;
-      top: calc($nav-height + 5.4rem);
+      top: calc($nav-height + 9.6rem);
       z-index: 80;
     }
   }
@@ -210,9 +211,21 @@
         .tag-item {
           font-size: $font-size-xs;
           padding: 0.15rem 0.5rem;
-          background: $bg-page;
           border-radius: $radius-xs;
-          color: $text-secondary;
+
+          // 类别标签：马卡龙樱花粉
+          &.tag-category {
+            background: rgba(#FFB7C5, 0.18);
+            color: #D4547A;
+            border: 1px solid rgba(#FFB7C5, 0.4);
+          }
+
+          // IP标签：马卡龙薰衣草紫
+          &.tag-ip {
+            background: rgba(#C9B1FF, 0.18);
+            color: #8B6FC9;
+            border: 1px solid rgba(#C9B1FF, 0.4);
+          }
         }
       }
 

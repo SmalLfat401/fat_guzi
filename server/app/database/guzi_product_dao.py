@@ -103,6 +103,7 @@ class GuziProductDAO:
             "category_name": product.category_name,
             "level_one_category_id": product.level_one_category_id,
             "level_one_category_name": product.level_one_category_name,
+            "detail_fetched": False,
             "created_at": datetime.utcnow(),
             "updated_at": datetime.utcnow(),
         }

@@ -109,6 +109,8 @@ class GuziProductUpdate(BaseModel):
     category_name: Optional[str] = None
     level_one_category_id: Optional[int] = None
     level_one_category_name: Optional[str] = None
+    # 标记是否调用过 fetch-detail 接口
+    detail_fetched: Optional[bool] = None
 
 
 class GuziProductResponse(GuziProductBase):
@@ -117,6 +119,8 @@ class GuziProductResponse(GuziProductBase):
     is_active: bool = Field(default=True)
     created_at: datetime
     updated_at: datetime
+    # 是否已调用过 fetch-detail 接口（用于前端区分「抓取详情」和「查看详情」按钮）
+    detail_fetched: bool = Field(default=False, description="是否已调用过 fetch-detail 接口")
 
     # 便捷字段（由 DAO 层计算写入）
     lowest_price: Optional[float] = None

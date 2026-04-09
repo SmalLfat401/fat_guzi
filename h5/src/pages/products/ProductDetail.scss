@@ -103,6 +103,13 @@
         }
       }
 
+      .promotion-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.6rem;
+        margin-top: $spacing-sm;
+      }
+
       .price-row {
         display: flex;
         align-items: center;
@@ -182,9 +189,21 @@
       .tag-item {
         font-size: $font-size-sm;
         padding: $spacing-xs $spacing-md;
-        background: #FFF0F3;
         border-radius: $radius-xs;
-        color: $primary-color;
+
+        // 类别标签：马卡龙樱花粉（甜美元气，与主题主色呼应）
+        &.tag-category {
+          background: rgba(#FFB7C5, 0.18);
+          color: #D4547A;
+          border: 1px solid rgba(#FFB7C5, 0.4);
+        }
+
+        // IP标签：马卡龙薰衣草紫（柔和梦幻，层次对比）
+        &.tag-ip {
+          background: rgba(#C9B1FF, 0.18);
+          color: #8B6FC9;
+          border: 1px solid rgba(#C9B1FF, 0.4);
+        }
       }
     }
   }
@@ -303,6 +322,7 @@
 
         .shop-type-tag {
           font-size: $font-size-xs;
+          margin-right:0.6rem;
         }
 
         .platform-badges {
