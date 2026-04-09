@@ -201,59 +201,28 @@ const ProductsPage: React.FC = () => {
     );
   };
 
-  // 渲染筛选标签
-  const renderFilterTags = () => (
-    <div className="filter-tags-section">
-      {/* IP 标签筛选 */}
-      {ipTags.length > 0 && (
-        <div className="filter-row">
-          <span className="filter-label">IP:</span>
-          <div className="filter-tags">
-            <Tag
-              className={`filter-tag ${selectedIpTag === null ? 'active' : ''}`}
-              onClick={() => handleIpTagFilter(null)}
-            >
-              全部
-            </Tag>
-            {ipTags.map(tag => (
-              <Tag
-                key={tag._id}
-                className={`filter-tag ${selectedIpTag === tag._id ? 'active' : ''}`}
-                color={tag.color}
-                onClick={() => handleIpTagFilter(tag._id)}
-              >
-                {tag.name}
-              </Tag>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* 类别标签筛选 */}
-      {categoryTags.length > 0 && (
-        <div className="filter-row">
-          <span className="filter-label">品类:</span>
-          <div className="filter-tags">
-            <Tag
-              className={`filter-tag ${selectedCategoryTag === null ? 'active' : ''}`}
-              onClick={() => handleCategoryTagFilter(null)}
-            >
-              全部
-            </Tag>
-            {categoryTags.map(tag => (
-              <Tag
-                key={tag._id}
-                className={`filter-tag ${selectedCategoryTag === tag._id ? 'active' : ''}`}
-                color="purple"
-                onClick={() => handleCategoryTagFilter(tag._id)}
-              >
-                {tag.name}
-              </Tag>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
+  // 渲染 IP 标签（横向滚动）
+  const renderIpFilterTags = () => (
+    ipTags.length > 0 && (
+      <div className="ip-filter-scroll">
+        <Tag
+          className={`ip-filter-tag ${selectedIpTag === null ? 'active' : ''}`}
+          onClick={() => handleIpTagFilter(null)}
+        >
+          全部
+        </Tag>
+        {ipTags.map(tag => (
+          <Tag
+            key={tag._id}
+            className={`ip-filter-tag ${selectedIpTag === tag._id ? 'active' : ''}`}
+            color={tag.color}
+            onClick={() => handleIpTagFilter(tag._id)}
+          >
+            {tag.name}
+          </Tag>
+        ))}
+      </div>
+    )
   );
 
   return (
@@ -272,10 +241,10 @@ const ProductsPage: React.FC = () => {
           className="search-bar"
         />
 
-        {/* 标签筛选区域 */}
-        {!loading && (ipTags.length > 0 || categoryTags.length > 0) && (
+        {/* IP 标签横向滚动筛选 */}
+        {!loading && ipTags.length > 0 && (
           <div className="filter-section">
-            {renderFilterTags()}
+            {renderIpFilterTags()}
           </div>
         )}
       </div>
@@ -286,36 +255,80 @@ const ProductsPage: React.FC = () => {
         className="filter-tabs"
       >
         <Tabs.Tab title="全部" key="all">
-          <div className="products-content">
-            {loading ? (
-              <div className="loading-container">
-                <SpinLoading />
-                <span className="loading-text">加载中...</span>
-              </div>
-            ) : filteredProducts.length === 0 ? (
-              <Empty description="暂无商品" />
-            ) : (
-              <div className="products-grid">
-                {filteredProducts.map(renderProductCard)}
+          <div className="products-content-wrapper">
+            {/* 左侧品类分类 */}
+            {!loading && categoryTags.length > 0 && (
+              <div className="category-sidebar">
+                <div
+                  className={`category-item ${selectedCategoryTag === null ? 'active' : ''}`}
+                  onClick={() => handleCategoryTagFilter(null)}
+                >
+                  全部
+                </div>
+                {categoryTags.map(tag => (
+                  <div
+                    key={tag._id}
+                    className={`category-item ${selectedCategoryTag === tag._id ? 'active' : ''}`}
+                    onClick={() => handleCategoryTagFilter(tag._id)}
+                  >
+                    {tag.name}
+                  </div>
+                ))}
               </div>
             )}
+            <div className="products-content">
+              {loading ? (
+                <div className="loading-container">
+                  <SpinLoading />
+                  <span className="loading-text">加载中...</span>
+                </div>
+              ) : filteredProducts.length === 0 ? (
+                <Empty description="暂无商品" />
+              ) : (
+                <div className="products-grid">
+                  {filteredProducts.map(renderProductCard)}
+                </div>
+              )}
+            </div>
           </div>
         </Tabs.Tab>
 
         <Tabs.Tab title={<>🔥 热门</>} key="hot">
-          <div className="products-content">
-            {loading ? (
-              <div className="loading-container">
-                <SpinLoading />
-                <span className="loading-text">加载中...</span>
-              </div>
-            ) : filteredProducts.length === 0 ? (
-              <Empty description="暂无热门商品" />
-            ) : (
-              <div className="products-grid">
-                {filteredProducts.map(renderProductCard)}
+          <div className="products-content-wrapper">
+            {/* 左侧品类分类 */}
+            {!loading && categoryTags.length > 0 && (
+              <div className="category-sidebar">
+                <div
+                  className={`category-item ${selectedCategoryTag === null ? 'active' : ''}`}
+                  onClick={() => handleCategoryTagFilter(null)}
+                >
+                  全部
+                </div>
+                {categoryTags.map(tag => (
+                  <div
+                    key={tag._id}
+                    className={`category-item ${selectedCategoryTag === tag._id ? 'active' : ''}`}
+                    onClick={() => handleCategoryTagFilter(tag._id)}
+                  >
+                    {tag.name}
+                  </div>
+                ))}
               </div>
             )}
+            <div className="products-content">
+              {loading ? (
+                <div className="loading-container">
+                  <SpinLoading />
+                  <span className="loading-text">加载中...</span>
+                </div>
+              ) : filteredProducts.length === 0 ? (
+                <Empty description="暂无热门商品" />
+              ) : (
+                <div className="products-grid">
+                  {filteredProducts.map(renderProductCard)}
+                </div>
+              )}
+            </div>
           </div>
         </Tabs.Tab>
       </Tabs>

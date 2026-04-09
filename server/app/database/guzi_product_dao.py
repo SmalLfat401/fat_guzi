@@ -12,16 +12,31 @@ from pymongo import ASCENDING
 import logging
 
 from app.database.mongo_pool import mongo_pool
+from app.database.guzi_tag_dao import guzi_tag_dao
 from app.models.guzi_product import (
     GuziProduct,
     GuziProductCreate,
     GuziProductUpdate,
     PlatformProduct,
 )
+from app.models.guzi_tag import TagType
 
 logger = logging.getLogger(__name__)
 
 COLLECTION_NAME = "guzi_products"
+
+
+def _get_hidden_tag_ids(tag_type: TagType) -> List[str]:
+    """获取指定类型中 show_on_h5=false 的标签ID列表"""
+    try:
+        tags = guzi_tag_dao.find_all(
+            tag_type=tag_type,
+            show_on_h5=False,
+            limit=1000,
+        )
+        return [tag.id for tag in tags]
+    except Exception:
+        return []
 
 
 def _compute_convenience_fields(
@@ -169,8 +184,13 @@ class GuziProductDAO:
         search: Optional[str] = None,
         ip_tag: Optional[str] = None,
         category_tag: Optional[str] = None,
+        h5_filter: bool = True,
     ) -> List[GuziProduct]:
-        """分页查询商品列表"""
+        """分页查询商品列表
+
+        Args:
+            h5_filter: 是否过滤H5隐藏的商品（默认True）
+        """
         query: dict = {}
         if is_active is not None:
             query["is_active"] = is_active
@@ -183,6 +203,20 @@ class GuziProductDAO:
             query["ip_tags"] = ip_tag
         if category_tag:
             query["category_tags"] = category_tag
+
+        # H5端过滤：如果某个标签被设为不在H5显示，则过滤掉包含该标签的商品
+        if h5_filter:
+            hidden_ip_tag_ids = _get_hidden_tag_ids(TagType.IP)
+            hidden_category_tag_ids = _get_hidden_tag_ids(TagType.CATEGORY)
+
+            exclude_query: Dict[str, Any] = {"$or": []}
+            if hidden_ip_tag_ids:
+                exclude_query["$or"].append({"ip_tags": {"$in": hidden_ip_tag_ids}})
+            if hidden_category_tag_ids:
+                exclude_query["$or"].append({"category_tags": {"$in": hidden_category_tag_ids}})
+
+            if exclude_query["$or"]:
+                query = {"$and": [query, {"$nor": [exclude_query]}]} if query else {"$nor": [exclude_query]}
 
         cursor = (
             self.collection
@@ -198,6 +232,7 @@ class GuziProductDAO:
         is_active: Optional[bool] = None,
         ip_tag: Optional[str] = None,
         category_tag: Optional[str] = None,
+        h5_filter: bool = True,
     ) -> int:
         """统计商品总数"""
         query: dict = {}
@@ -207,6 +242,21 @@ class GuziProductDAO:
             query["ip_tags"] = ip_tag
         if category_tag:
             query["category_tags"] = category_tag
+
+        # H5端过滤
+        if h5_filter:
+            hidden_ip_tag_ids = _get_hidden_tag_ids(TagType.IP)
+            hidden_category_tag_ids = _get_hidden_tag_ids(TagType.CATEGORY)
+
+            exclude_query: Dict[str, Any] = {"$or": []}
+            if hidden_ip_tag_ids:
+                exclude_query["$or"].append({"ip_tags": {"$in": hidden_ip_tag_ids}})
+            if hidden_category_tag_ids:
+                exclude_query["$or"].append({"category_tags": {"$in": hidden_category_tag_ids}})
+
+            if exclude_query["$or"]:
+                query = {"$and": [query, {"$nor": [exclude_query]}]} if query else {"$nor": [exclude_query]}
+
         return self.collection.count_documents(query)
 
     def update(self, product_id: str, update: GuziProductUpdate) -> Optional[GuziProduct]:

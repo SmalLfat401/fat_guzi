@@ -318,6 +318,7 @@ async def list_guzi_products(
     search: Optional[str] = Query(None),
     ip_tag: Optional[str] = Query(None, description="IP标签ID筛选"),
     category_tag: Optional[str] = Query(None, description="类别标签ID筛选"),
+    h5_filter: bool = Query(True, description="是否过滤H5隐藏的商品"),
 ):
     """获取谷子商品列表（分页）"""
     return guzi_product_dao.find_all(
@@ -327,6 +328,7 @@ async def list_guzi_products(
         search=search,
         ip_tag=ip_tag,
         category_tag=category_tag,
+        h5_filter=h5_filter,
     )
 
 
@@ -335,9 +337,15 @@ async def count_guzi_products(
     is_active: Optional[bool] = Query(None),
     ip_tag: Optional[str] = Query(None, description="IP标签ID筛选"),
     category_tag: Optional[str] = Query(None, description="类别标签ID筛选"),
+    h5_filter: bool = Query(True, description="是否过滤H5隐藏的商品"),
 ):
     """获取谷子商品总数"""
-    return {"total": guzi_product_dao.count(is_active=is_active, ip_tag=ip_tag, category_tag=category_tag)}
+    return {"total": guzi_product_dao.count(
+        is_active=is_active,
+        ip_tag=ip_tag,
+        category_tag=category_tag,
+        h5_filter=h5_filter,
+    )}
 
 
 @router.get("/{product_id}", response_model=GuziProduct)

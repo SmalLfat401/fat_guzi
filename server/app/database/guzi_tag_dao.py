@@ -55,6 +55,7 @@ class GuziTagDAO:
             "color": tag.color,
             "remark": tag.remark,
             "is_active": True,
+            "show_on_h5": tag.show_on_h5,
             "created_at": datetime.utcnow(),
             "updated_at": datetime.utcnow(),
         }
@@ -88,6 +89,7 @@ class GuziTagDAO:
         limit: int = 100,
         tag_type: Optional[TagType] = None,
         is_active: Optional[bool] = None,
+        show_on_h5: Optional[bool] = None,
         search: Optional[str] = None,
     ) -> List[GuziTag]:
         """查询所有标签，支持筛选"""
@@ -96,6 +98,8 @@ class GuziTagDAO:
             query["tag_type"] = tag_type.value
         if is_active is not None:
             query["is_active"] = is_active
+        if show_on_h5 is not None:
+            query["show_on_h5"] = show_on_h5
         if search:
             query["name"] = {"$regex": search, "$options": "i"}
 
@@ -115,6 +119,7 @@ class GuziTagDAO:
         self,
         tag_type: Optional[TagType] = None,
         is_active: Optional[bool] = None,
+        show_on_h5: Optional[bool] = None,
         search: Optional[str] = None,
     ) -> int:
         """统计标签数量"""
@@ -123,6 +128,8 @@ class GuziTagDAO:
             query["tag_type"] = tag_type.value
         if is_active is not None:
             query["is_active"] = is_active
+        if show_on_h5 is not None:
+            query["show_on_h5"] = show_on_h5
         if search:
             query["name"] = {"$regex": search, "$options": "i"}
         return self.collection.count_documents(query)

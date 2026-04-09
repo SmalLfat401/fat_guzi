@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { message, Modal, Space, Tag, Input, Button, Dropdown, Select, Tooltip, Image } from 'antd';
+import { message, Modal, Space, Tag, Input, Button, Dropdown, Select, Tooltip, Image, Checkbox } from 'antd';
 import type { MenuProps } from 'antd';
 import {
   CloudDownloadOutlined,
@@ -715,8 +715,7 @@ export default function GuziProductList() {
       key: 'selection',
       width: 60,
       render: (_, record) => (
-        <input
-          type="checkbox"
+        <Checkbox
           checked={selectedRows.some(r => r.title === record.title)}
           onChange={(e) => {
             if (e.target.checked) {
@@ -1049,8 +1048,30 @@ export default function GuziProductList() {
         }}
         width={1000}
         footer={[
-          <div key="footer-info" style={{ float: 'left' }}>
-            <Tag color="blue">已选择: {selectedRows.length} 个商品</Tag>
+          <div key="footer-info" style={{ display: 'flex', alignItems: 'center', gap: 8, float: 'left' }}>
+            <Tag color="blue">已选择: {selectedRows.length} / {searchResults.length} 个</Tag>
+            <Button
+              type="link"
+              size="small"
+              disabled={searchResults.length === 0}
+              onClick={() => {
+                if (selectedRows.length === searchResults.length) {
+                  setSelectedRows([]);
+                } else {
+                  setSelectedRows([...searchResults]);
+                }
+              }}
+            >
+              {selectedRows.length === searchResults.length ? '取消全选' : '全选'}
+            </Button>
+            <Button
+              type="link"
+              size="small"
+              disabled={searchResults.length === 0 || selectedRows.length === 0}
+              onClick={() => setSelectedRows([])}
+            >
+              反选
+            </Button>
           </div>,
           <Button key="cancel" onClick={() => { setSearchModalVisible(false); handleResetSearch(); }}>
             取消
@@ -1062,7 +1083,7 @@ export default function GuziProductList() {
             disabled={selectedRows.length === 0}
             loading={loading}
           >
-            添加选中商品
+            添加选中商品 ({selectedRows.length})
           </Button>,
         ]}
       >

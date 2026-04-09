@@ -135,6 +135,7 @@ const TagManager: React.FC<{
         color: editingTag.color ?? undefined,
         remark: editingTag.remark ?? undefined,
         is_active: editingTag.is_active,
+        show_on_h5: editingTag.show_on_h5,
       });
     }
     if (!open) {
@@ -252,6 +253,28 @@ const TagManager: React.FC<{
       ),
     },
     {
+      title: 'H5显示',
+      dataIndex: 'show_on_h5',
+      key: 'show_on_h5',
+      width: 100,
+      render: (showOnH5: boolean, record: GuziTag) => (
+        <Switch
+          checkedChildren="显示"
+          unCheckedChildren="隐藏"
+          checked={showOnH5}
+          size="small"
+          onChange={(checked) => {
+            guziTagApi.updateTag(record._id, { show_on_h5: checked })
+              .then(() => {
+                message.success(checked ? 'H5已显示' : 'H5已隐藏');
+                fetchTags();
+              })
+              .catch((err) => message.error(err.message));
+          }}
+        />
+      ),
+    },
+    {
       title: '操作',
       key: 'action',
       width: 120,
@@ -278,6 +301,7 @@ const TagManager: React.FC<{
   ];
 
   const activeCount = tags.filter((t) => t.is_active).length;
+  const h5ShownCount = tags.filter((t) => t.show_on_h5).length;
 
   return (
     <div>
@@ -418,7 +442,8 @@ const TagManager: React.FC<{
             <Space>
               <span style={{ color: '#9ca3af', fontSize: 13 }}>
                 共 <strong style={{ color: '#00f0ff' }}>{total}</strong> 个标签，
-                已启用 <strong style={{ color: '#52c41a' }}>{activeCount}</strong> 个
+                已启用 <strong style={{ color: '#52c41a' }}>{activeCount}</strong> 个，
+                H5显示 <strong style={{ color: '#1890ff' }}>{h5ShownCount}</strong> 个
               </span>
             </Space>
           </Col>
@@ -518,9 +543,14 @@ const TagManager: React.FC<{
             />
           </Form.Item>
           {editingTag && (
-            <Form.Item name="is_active" label="启用状态" valuePropName="checked">
-              <Switch checkedChildren="启用" unCheckedChildren="禁用" />
-            </Form.Item>
+            <>
+              <Form.Item name="is_active" label="启用状态" valuePropName="checked">
+                <Switch checkedChildren="启用" unCheckedChildren="禁用" />
+              </Form.Item>
+              <Form.Item name="show_on_h5" label="H5显示" valuePropName="checked">
+                <Switch checkedChildren="显示" unCheckedChildren="隐藏" />
+              </Form.Item>
+            </>
           )}
         </Form>
       </Modal>

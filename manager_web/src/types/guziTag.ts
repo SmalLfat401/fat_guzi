@@ -9,6 +9,7 @@ export interface GuziTag {
   color?: string;
   remark?: string;
   is_active: boolean;
+  show_on_h5: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -18,6 +19,7 @@ export interface GuziTagCreate {
   name: string;
   color?: string;
   remark?: string;
+  show_on_h5?: boolean;
 }
 
 export interface GuziTagUpdate {
@@ -25,6 +27,7 @@ export interface GuziTagUpdate {
   color?: string;
   remark?: string;
   is_active?: boolean;
+  show_on_h5?: boolean;
 }
 
 export interface GuziTagStats {

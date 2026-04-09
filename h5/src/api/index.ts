@@ -235,7 +235,7 @@ export async function fetchTags(tagType?: 'ip' | 'category'): Promise<GuziTag[]>
     };
     if (tagType) {
       params.tag_type = tagType;
-      params.is_active = true;
+      params.show_on_h5 = true; // H5 端只显示管理员设置为"在H5显示"的标签
     }
 
     const response = await apiClient.get<any>('/guzi-tags', { params });

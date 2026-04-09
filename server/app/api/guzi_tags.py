@@ -57,6 +57,7 @@ async def get_tags(
     limit: int = Query(50, ge=1, le=500, description="返回记录数"),
     tag_type: Optional[TagType] = Query(None, description="标签类型筛选"),
     is_active: Optional[bool] = Query(None, description="是否启用"),
+    show_on_h5: Optional[bool] = Query(None, description="是否在H5端显示"),
     search: Optional[str] = Query(None, description="搜索标签名称"),
 ):
     """
@@ -65,7 +66,8 @@ async def get_tags(
     - **skip**: 跳过记录数，用于分页
     - **limit**: 返回记录数，最大500
     - **tag_type**: 筛选标签类型（ip 或 category）
-    - **is_active**: 筛选启用状态
+    - **is_active**: 筛选启用状态（管理端用）
+    - **show_on_h5**: 筛选H5显示状态
     - **search**: 搜索标签名称
     """
     tags = guzi_tag_dao.find_all(
@@ -73,9 +75,15 @@ async def get_tags(
         limit=limit,
         tag_type=tag_type,
         is_active=is_active,
+        show_on_h5=show_on_h5,
         search=search,
     )
-    total = guzi_tag_dao.count(tag_type=tag_type, is_active=is_active, search=search)
+    total = guzi_tag_dao.count(
+        tag_type=tag_type,
+        is_active=is_active,
+        show_on_h5=show_on_h5,
+        search=search,
+    )
 
     page = skip // limit + 1 if limit > 0 else 1
     total_pages = (total + limit - 1) // limit if limit > 0 else 1
