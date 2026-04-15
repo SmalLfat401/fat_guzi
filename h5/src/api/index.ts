@@ -11,6 +11,7 @@ import type {
   PlatformInfo,
   H5GlossaryResponse,
   H5GlossaryStats,
+  IntelEventDetail,
 } from '@/types';
 
 // 后端原始数据类型（用于转换）
@@ -315,34 +316,32 @@ export async function fetchHomeData(): Promise<HomeData> {
 }
 
 /**
- * 获取活动日历列表
+ * 获取活动日历列表（微博情报）
+ * @param params.mode - calendar=日历视图, list=列表视图
+ * @param params.start_date - 开始日期 YYYY-MM-DD
+ * @param params.end_date - 结束日期 YYYY-MM-DD（日历视图用）
+ * @param params.category - 情报类别过滤
+ * @param params.skip - 跳过条数（列表视图分页用）
+ * @param params.limit - 返回条数
  */
-export async function fetchCalendarEvents() {
+export async function fetchCalendarEvents(params: {
+  mode?: 'calendar' | 'list';
+  start_date?: string;
+  end_date?: string;
+  category?: string;
+  skip?: number;
+  limit?: number;
+} = {}): Promise<{ items: any[]; total: number }> {
   try {
-    const response = await apiClient.get<any>('/calendar/events', {
-      params: { limit: 20 }
-    });
-    const rawData = response as any;
-    return Array.isArray(rawData) ? rawData : (rawData.items || rawData || []);
+    // apiClient 拦截器已返回 response.data，直接访问
+    const intelRes = await apiClient.get('/h5/intel/events', { params }).catch(() => null) as { items: any[]; total: number } | null;
+    return {
+      items: intelRes?.items || [],
+      total: intelRes?.total || 0,
+    };
   } catch (error) {
     console.error('获取活动日历失败:', error);
-    return [];
-  }
-}
-
-/**
- * 获取谷子上新日历
- */
-export async function fetchGuziReleases() {
-  try {
-    const response = await apiClient.get<any>('/releases', {
-      params: { limit: 20 }
-    });
-    const rawData = response as any;
-    return Array.isArray(rawData) ? rawData : (rawData.items || rawData || []);
-  } catch (error) {
-    console.error('获取谷子上新失败:', error);
-    return [];
+    return { items: [], total: 0 };
   }
 }
 
@@ -439,10 +438,25 @@ export async function fetchGlossaryStats(): Promise<H5GlossaryStats | null> {
   }
 }
 
+/**
+ * 获取情报详情（供 H5 情报详情页使用）
+ */
+export async function fetchIntelEventDetail(
+  intelId: string
+): Promise<IntelEventDetail | null> {
+  try {
+    const response = await apiClient.get<any>(`/h5/intel/events/${intelId}`);
+    return response as unknown as IntelEventDetail;
+  } catch (error) {
+    console.error('获取情报详情失败:', error);
+    return null;
+  }
+}
+
 export default {
   fetchHomeData,
   fetchCalendarEvents,
-  fetchGuziReleases,
+  fetchIntelEventDetail,
   fetchProducts,
   fetchProductDetail,
   fetchTags,

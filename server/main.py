@@ -18,8 +18,9 @@ from app.api import (
     guzi_tags_router,
     weibo_crawler_task,
     llm_router,
-    intel_monitor as intel_monitor_router,
+    weibo_intel as weibo_intel_router,
     h5_glossary_router,
+    h5_intel,
 )
 from app.crawler.playwright_client import PlaywrightClient
 from app.config.settings import settings
@@ -60,18 +61,7 @@ async def lifespan(app: FastAPI):
     task_service = app_state.get_crawler_task_service()
     task_service.restore_from_db()
 
-    # Startup: 启动热点追踪监控器（后台异步任务）
-    intel_monitor = app_state.get_intel_monitor()
-    intel_monitor.start()
-    print(f"IntelMonitor 启动 | 状态={intel_monitor.status.value} | 待处理={intel_monitor.get_pending_count()}条")
-
     yield
-
-    # Shutdown: 停止热点追踪监控器
-    intel_monitor = app_state.get_intel_monitor()
-    if intel_monitor.status.value != "stopped":
-        intel_monitor.stop()
-        print("IntelMonitor 已停止")
 
     # Shutdown: Cleanup Playwright
     if app_state.playwright_client:
@@ -111,8 +101,9 @@ app.include_router(guzi_products_router, prefix="/api/v1", tags=["谷子商品�
 app.include_router(guzi_tags_router, prefix="/api/v1", tags=["谷子标签管理"])
 app.include_router(weibo_crawler_task.router, prefix="/api/v1", tags=["微博爬虫任务"])
 app.include_router(llm_router, prefix="/api/v1", tags=["LLM 对接"])
-app.include_router(intel_monitor_router.router, prefix="/api/v1", tags=["热点追踪系统"])
+app.include_router(weibo_intel_router.router, prefix="/api/v1", tags=["微博情报管理"])
 app.include_router(h5_glossary_router, prefix="/api/v1", tags=["H5 术语百科"])
+app.include_router(h5_intel.router, prefix="/api/v1", tags=["H5 情报"])
 
 
 @app.get("/")

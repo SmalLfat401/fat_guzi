@@ -8,7 +8,6 @@ import type { ColumnsType } from 'antd/es/table';
 import type { GuziTag, GuziTagCreate, GuziTagUpdate, TagType } from '../../types/guziTag';
 import { guziTagApi } from '../../api/guziTag';
 import { Table, Button, Switch, Tooltip, Form, Input, Select } from 'antd';
-import dayjs from 'dayjs';
 import '../../styles/global.scss';
 
 // 默认颜色选项

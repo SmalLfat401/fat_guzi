@@ -93,42 +93,106 @@
       background: transparent;
 
       &.all {
-        background: $text-primary;
-        color: $bg-card;
-        border-color: $text-primary;
+        background: $bg-card;
+        color: $text-tertiary;
+        border-color: $border-color;
 
         &.active {
-          opacity: 0.85;
+          background: $text-primary;
+          color: $bg-card;
+          border-color: $text-primary;
+          font-weight: $font-weight-semibold;
         }
       }
 
-      &.expo {
+      &.convention {
         background: #EEEDFE;
         color: #534AB7;
         border-color: #EEEDFE;
 
         &.active {
+          background: #534AB7;
+          color: #fff;
           border-color: #534AB7;
+          font-weight: $font-weight-semibold;
         }
       }
 
-      &.merch {
+      &.book_signing {
         background: #FBEAF0;
         color: #D4537E;
         border-color: #FBEAF0;
 
         &.active {
+          background: #D4537E;
+          color: #fff;
           border-color: #D4537E;
+          font-weight: $font-weight-semibold;
         }
       }
 
-      &.sale {
-        background: #FAEEDA;
-        color: #BA7517;
-        border-color: #FAEEDA;
+      &.pre_order {
+        background: #FFF3E0;
+        color: #E65100;
+        border-color: #FFF3E0;
 
         &.active {
-          border-color: #BA7517;
+          background: #E65100;
+          color: #fff;
+          border-color: #E65100;
+          font-weight: $font-weight-semibold;
+        }
+      }
+
+      &.product_launch {
+        background: #E8F5E9;
+        color: #2E7D32;
+        border-color: #E8F5E9;
+
+        &.active {
+          background: #2E7D32;
+          color: #fff;
+          border-color: #2E7D32;
+          font-weight: $font-weight-semibold;
+        }
+      }
+
+      &.offline_activity {
+        background: #E3F2FD;
+        color: #1565C0;
+        border-color: #E3F2FD;
+
+        &.active {
+          background: #1565C0;
+          color: #fff;
+          border-color: #1565C0;
+          font-weight: $font-weight-semibold;
+        }
+      }
+
+      &.online_activity {
+        background: #F3E5F5;
+        color: #6A1B9A;
+        border-color: #F3E5F5;
+
+        &.active {
+          background: #6A1B9A;
+          color: #fff;
+          border-color: #6A1B9A;
+          font-weight: $font-weight-semibold;
+        }
+      }
+
+      &.other {
+        background: #F5F5F5;
+        color: #616161;
+        border-color: #F5F5F5;
+
+        &.active {
+          background: #424242;
+          color: #fff;
+          border-color: #424242;
+          font-weight: $font-weight-semibold;
         }
       }
     }
@@ -340,6 +404,7 @@
       gap: 0.4rem;
       margin-top: 0.1rem;
       flex-shrink: 0;
+      width: 11rem;
 
       .event-price {
         font-size: $font-size-sm;
@@ -361,6 +426,9 @@
   // =============================================
   .list-view {
     padding-bottom: 2rem;
+    max-height: calc(100vh - 16rem);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
 
     .cal-loading {
       padding: 2rem;
@@ -368,6 +436,18 @@
 
     .list-empty {
       padding: 3rem 0;
+    }
+
+    .load-more-loading {
+      padding: 1rem 1.6rem;
+      text-align: center;
+    }
+
+    .load-more-end {
+      text-align: center;
+      padding: 1.2rem 0;
+      color: $text-tertiary;
+      font-size: $font-size-sm;
     }
 
     .list-section {
@@ -398,5 +478,20 @@
         gap: 0.8rem;
       }
     }
+  }
+
+  // 子路由页面遮罩层（情报详情等）
+  // 用遮罩方式渲染，不替换日历 DOM，从而保留列表滚动位置和分页数据
+  // =============================================
+  .calendar-child-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 200;
+    background: $bg-page;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
   }
 }

@@ -555,12 +555,6 @@ export default function GuziProductList() {
     }
   };
 
-  // 打开批量获取详情弹窗
-  const handleOpenBatchFetchDetail = () => {
-    setBatchFetchResults(null);
-    setBatchFetchIncludeFetched(false);
-    setBatchFetchModalVisible(true);
-  };
 
   // 确认批量获取详情
   const handleConfirmBatchFetchDetail = async () => {

@@ -1,7 +1,7 @@
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { Layout, Menu, ConfigProvider, theme } from 'antd';
 import zhCN from 'antd/locale/zh_CN';
-import { UserOutlined, DashboardOutlined, SettingOutlined, TagOutlined, DatabaseOutlined, BulbOutlined, ShoppingOutlined, BookOutlined, FireOutlined, CalendarOutlined, HeartOutlined, KeyOutlined, ThunderboltOutlined } from '@ant-design/icons';
+import { UserOutlined, DashboardOutlined, SettingOutlined, TagOutlined, DatabaseOutlined, BulbOutlined, ShoppingOutlined, BookOutlined, FireOutlined, CalendarOutlined, HeartOutlined, KeyOutlined, ThunderboltOutlined, RobotOutlined, AlertOutlined } from '@ant-design/icons';
 import './styles/global.scss';
 
 const { Header, Content, Sider } = Layout;
@@ -12,6 +12,16 @@ function App() {
 
   const menuItems = [
     { key: '/weibo-users', icon: <UserOutlined />, label: '微博用户管理' },
+    {
+      key: 'weibo-intel',
+      icon: <RobotOutlined />,
+      label: '微博情报',
+      children: [
+        { key: '/weibo-intel', icon: <RobotOutlined />, label: '情报提取' },
+        { key: '/weibo-intel/management', icon: <AlertOutlined />, label: '情报管理' },
+        { key: '/weibo-intel/keywords', icon: <KeyOutlined />, label: '关键词库' },
+      ],
+    },
     {
       key: 'slang',
       icon: <BookOutlined />,

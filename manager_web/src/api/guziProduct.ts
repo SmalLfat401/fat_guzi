@@ -135,7 +135,7 @@ export const guziProductApi = {
 
   // 批量获取商品详情并填充到谷子商品
   batchFetchItemDetail: async (productIds: string[], generateLinks: boolean = true) => {
-    const response = await apiClient.post<BatchFetchDetailResponse>(
+    const response = await apiClient.post<any>(
       '/guzi-products/batch-fetch-detail',
       { product_ids: productIds, generate_links: generateLinks }
     );

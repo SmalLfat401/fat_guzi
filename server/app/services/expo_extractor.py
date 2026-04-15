@@ -118,16 +118,23 @@ class ExpoExtractor:
             ]
         return self._compiled_change_keywords
 
-    def extract(self, post: WeiboPost) -> Dict[str, Any]:
+    def extract(self, post: WeiboPost, skip_rule_match: bool = False) -> Dict[str, Any]:
         """
         主提取方法 - 从帖子中提取漫展相关信息
 
+        关键词库逻辑：
+          - 关键词库开启且有数据：先用规则匹配（EXPO_KEYWORDS），命中的用AI精炼，没命中的调AI兜底
+          - 关键词库关闭或无数据：跳过规则匹配，直接调AI分析
+
         Args:
             post: 微博帖子对象
+            skip_rule_match: 是否跳过规则匹配阶段（关键词库未启用时为 True）
 
         Returns:
             提取结果字典
         """
+        from app.database.system_config_dao import system_config_dao
+
         text = self._get_text_content(post)
         if not text:
             return {"is_expo_related": False, "reason": "内容为空"}
@@ -147,36 +154,50 @@ class ExpoExtractor:
             "needs_ai": False
         }
 
-        # ========== Step 1: 规则匹配 ==========
-        rule_result = self._rule_match(text, post.user_nickname)
+        # 判断是否使用规则匹配
+        keyword_enabled = system_config_dao.is_keyword_library_enabled()
+        has_keywords = system_config_dao.has_any_keywords()
+        use_rule_match = keyword_enabled and has_keywords
 
-        # 判断是否与漫展相关
-        if rule_result["is_potential_expo"]:
-            result["is_expo_related"] = True
-            result["event_name"] = rule_result["event_name"]
-            result["dates"] = rule_result["dates"]
-            result["location"] = rule_result["location"]
-            result["ticket_info"] = rule_result["ticket_info"]
-            result["ips"] = rule_result["ips"]
-            result["guests"] = rule_result["guests"]
-            result["confidence"] = rule_result["confidence"]
+        if use_rule_match and not skip_rule_match:
+            # ========== 阶段A：规则匹配（关键词库命中） ==========
+            rule_result = self._rule_match(text, post.user_nickname)
 
-            # 检查是否有变动
-            if rule_result["has_change"]:
-                result["is_important_update"] = True
-                result["update_type"] = UpdateType.CHANGE
-                result["update_summary"] = rule_result["change_summary"]
-            else:
-                result["update_type"] = rule_result["update_type"]
+            if rule_result["is_potential_expo"]:
+                result["is_expo_related"] = True
+                result["event_name"] = rule_result["event_name"]
+                result["dates"] = rule_result["dates"]
+                result["location"] = rule_result["location"]
+                result["ticket_info"] = rule_result["ticket_info"]
+                result["ips"] = rule_result["ips"]
+                result["guests"] = rule_result["guests"]
+                result["confidence"] = rule_result["confidence"]
 
-            result["update_summary"] = rule_result["summary"]
+                if rule_result["has_change"]:
+                    result["is_important_update"] = True
+                    result["update_type"] = UpdateType.CHANGE
+                    result["update_summary"] = rule_result["change_summary"]
+                else:
+                    result["update_type"] = rule_result["update_type"]
 
-        # 置信度低于 0.5 时，标记需要AI介入（由阶段二处理）
-        # 置信度 >= 0.5 时直接走阶段一流程
-        if result["is_expo_related"] and result["confidence"] < 0.5:
+                result["update_summary"] = rule_result["summary"]
+
+                # 高置信度直接完成，低置信度需要AI精炼
+                threshold = system_config_dao.get_config().intel_config.rule_confidence_threshold
+                if result["confidence"] >= threshold:
+                    result["needs_ai"] = False
+                    return result
+                else:
+                    result["needs_ai"] = True
+                    return result
+
+            # 规则未命中，走AI兜底
             result["needs_ai"] = True
-
-        return result
+            return result
+        else:
+            # ========== 阶段B：跳过规则，直接调AI（关键词库未启用/无数据） ==========
+            result["needs_ai"] = True
+            return result
 
     async def extract_with_ai(
         self,
@@ -231,19 +252,49 @@ class ExpoExtractor:
         rule_result: Dict[str, Any]
     ) -> Dict[str, Any]:
         """
-        【同步封装】供 intel_monitor 后台线程调用
-        在子线程中运行事件循环执行 async 方法
+        【同步封装】在子线程中运行事件循环执行 async AI 提取方法
+
+        兼容两种调用场景：
+        1. 关键词库启用：rule_result 来自 _rule_match，可能有部分字段
+        2. 关键词库禁用：rule_result 为空 dict，直接调 AI 分析全文
         """
         import asyncio
-        try:
-            loop = asyncio.get_running_loop()
-        except RuntimeError:
-            # 没有正在运行的事件循环，直接创建
-            return asyncio.run(self.extract_with_ai(post, rule_result))
+        # 在任何情况下都直接用新事件循环执行 async 方法，
+        # 避免嵌套事件循环导致的 "Event loop is closed" 错误
+        return asyncio.run(self._extract_with_ai_async(post, rule_result))
 
-        # 已有运行中的事件循环（理论上 intel_monitor 是同步线程，不会有）
-        future = loop.create_task(self.extract_with_ai(post, rule_result))
-        return asyncio.run(future)
+    async def _extract_with_ai_async(
+        self,
+        post: WeiboPost,
+        rule_result: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """
+        【异步内部方法】真正的 AI 提取逻辑
+        """
+        text = self._get_text_content(post)
+        prompt = self._build_ai_prompt(text, rule_result)
+        try:
+            response = await llm_service.chat(prompt, temperature=0.3, max_tokens=500)
+            ai_result = json.loads(response)
+            if ai_result.get("is_expo_related"):
+                return {
+                    **rule_result,
+                    "is_expo_related": True,
+                    "event_name": rule_result.get("event_name") or ai_result.get("event_name"),
+                    "dates": rule_result.get("dates") or ai_result.get("dates"),
+                    "location": rule_result.get("location") or ai_result.get("location"),
+                    "ticket_info": rule_result.get("ticket_info") or ai_result.get("ticket_info"),
+                    "ips": rule_result.get("ips") or ai_result.get("ips", []),
+                    "guests": rule_result.get("guests") or ai_result.get("guests", []),
+                    "is_important_update": rule_result.get("is_important_update") or ai_result.get("is_important_update", False),
+                    "update_type": rule_result.get("update_type") or ai_result.get("update_type"),
+                    "update_summary": rule_result.get("update_summary") or ai_result.get("summary"),
+                    "confidence": max(rule_result.get("confidence", 0), ai_result.get("confidence", 0)),
+                    "needs_ai": False
+                }
+        except Exception as e:
+            logger.error(f"AI 提取失败: {e}")
+        return rule_result
 
     def _get_text_content(self, post: WeiboPost) -> str:
         """获取帖子的文本内容（优先使用长文本）"""
@@ -555,23 +606,28 @@ class ExpoExtractor:
 
     def _build_ai_prompt(self, text: str, rule_result: Dict[str, Any]) -> str:
         """构建 AI 提取提示词"""
+        import json as _json
+
+        dates_str = _json.dumps(rule_result.get('dates'), ensure_ascii=False) if rule_result.get('dates') else '{"start": "...", "end": "..."}'
+        dates_example = '{"start": "2026-05-01", "end": "2026-05-03"}'
+
         return f"""你是一个漫展活动信息提取专家。请分析以下微博内容，判断是否与漫展/动漫展会相关，并提取关键信息。
 
 【微博内容】
 {text}
 
 【规则匹配结果】（仅供参考）
-- 活动名称候选：{rule_result.get('event_name')}
-- 时间信息：{rule_result.get('dates')}
-- 地点信息：{rule_result.get('location')}
-- 票务信息：{rule_result.get('ticket_info')}
-- 规则置信度：{rule_result.get('confidence')}
+- 活动名称候选：{rule_result.get('event_name') or '无'}
+- 时间信息：{dates_str}
+- 地点信息：{rule_result.get('location') or '无'}
+- 票务信息：{rule_result.get('ticket_info') or '无'}
+- 规则置信度：{rule_result.get('confidence', 0):.2f}
 
 【任务要求】
 1. 判断这条微博是否与漫展/动漫展会相关（返回 is_expo_related）
 2. 如果相关，提取或确认以下信息：
    - 活动名称（event_name）
-   - 活动时间（dates，格式如 {"start": "2026-05-01", "end": "2026-05-03"}）
+   - 活动时间（dates，格式：{dates_example}）
    - 活动地点（location）
    - 票务信息（ticket_info）
    - 参展IP列表（ips）
@@ -583,7 +639,7 @@ class ExpoExtractor:
 {{
     "is_expo_related": true/false,
     "event_name": "...",
-    "dates": {{"start": "...", "end": "..."}},
+    "dates": {dates_example},
     "location": "...",
     "ticket_info": "...",
     "ips": ["...", "..."],

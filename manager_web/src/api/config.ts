@@ -4,7 +4,7 @@ export const API_BASE_URL = 'http://127.0.0.1:8879/api/v1/';
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 30000,
+  timeout: 300000,  // 5分钟超时，批次处理可能需要较长时间
   headers: {
     'Content-Type': 'application/json',
   },

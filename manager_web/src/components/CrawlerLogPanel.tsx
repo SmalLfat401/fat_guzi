@@ -3,7 +3,7 @@ import {
   CheckCircleOutlined,
   CloseCircleOutlined,
 } from '@ant-design/icons';
-import type { WeiboCrawlerTaskStatus, CrawlerLogEntry } from '../api/crawler';
+import type { CrawlerTaskStatus, CrawlerLogEntry } from '../api/crawler';
 
 const { Text: Txt } = Typography;
 
@@ -17,7 +17,7 @@ const ACTION_LABEL: Record<string, string> = {
 };
 
 interface CrawlerLogPanelProps {
-  taskStatus: WeiboCrawlerTaskStatus | null;
+  taskStatus: CrawlerTaskStatus | null;
 }
 
 const CrawlerLogPanel: React.FC<CrawlerLogPanelProps> = ({ taskStatus }) => {
@@ -76,7 +76,7 @@ const CrawlerLogPanel: React.FC<CrawlerLogPanelProps> = ({ taskStatus }) => {
           <Space style={{ width: '100%', justifyContent: 'space-between', marginBottom: 4 }}>
             <Txt>
               用户 <Txt strong>{taskStatus?.processed_users}</Txt>/{taskStatus?.total_users}
-              {taskStatus?.failed_users > 0 && (
+              {taskStatus?.failed_users != null && taskStatus.failed_users > 0 && (
                 <Txt type="danger" style={{ fontSize: 11 }}> (失败 {taskStatus.failed_users})</Txt>
               )}
             </Txt>
@@ -104,7 +104,7 @@ const CrawlerLogPanel: React.FC<CrawlerLogPanelProps> = ({ taskStatus }) => {
             <Txt type="secondary">
               上次任务完成：
               用户 <Txt strong>{taskStatus.processed_users}</Txt>
-              {taskStatus.failed_users > 0 && (
+              {taskStatus.failed_users != null && taskStatus.failed_users > 0 && (
                 <Txt type="danger" style={{ fontSize: 11 }}> (失败 {taskStatus.failed_users})</Txt>
               )}
             </Txt>
@@ -113,7 +113,7 @@ const CrawlerLogPanel: React.FC<CrawlerLogPanelProps> = ({ taskStatus }) => {
             </Txt>
             <Txt type="secondary">
               全文 <Txt strong style={{ color: '#1890ff' }}>{taskStatus.saved_longtext}</Txt>/{taskStatus.total_longtext}
-              {taskStatus.failed_longtext > 0 && (
+              {taskStatus.failed_longtext != null && taskStatus.failed_longtext > 0 && (
                 <Txt type="danger" style={{ fontSize: 11 }}> (失败 {taskStatus.failed_longtext})</Txt>
               )}
             </Txt>
@@ -130,7 +130,7 @@ const CrawlerLogPanel: React.FC<CrawlerLogPanelProps> = ({ taskStatus }) => {
             </Txt>
           </Space>
           <Timeline
-            items={taskStatus.logs.slice(-50).map((log, idx) => renderLogItem(log, idx))}
+            items={taskStatus.logs.slice(-50).map((log: CrawlerLogEntry, idx: number) => renderLogItem(log, idx))}
           />
         </div>
       )}

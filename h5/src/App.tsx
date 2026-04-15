@@ -2,17 +2,20 @@
  * OpenClaw H5 应用主组件
  */
 import React from 'react';
-import { BrowserRouter, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, useNavigate, useLocation, Outlet } from 'react-router-dom';
 import { initRem } from '@/utils/rem';
 import TabBar from '@/components/TabBar';
 import CalendarPage from '@/pages/calendar';
+import IntelEventDetailPage from '@/pages/calendar/IntelEventDetail';
 import ProductsPage from '@/pages/products';
 import ProductDetailPage from '@/pages/products/ProductDetail';
 import GlossaryPage from '@/pages/glossary';
 
 // 路由配置
 const routes = [
-  { path: '/calendar', component: CalendarPage },
+  { path: '/calendar', component: CalendarPage, children: [
+    { path: 'event/:id', component: IntelEventDetailPage },
+  ]},
   { path: '/products', component: ProductsPage },
   { path: '/product/:id', component: ProductDetailPage },
   { path: '/glossary', component: GlossaryPage },
@@ -23,8 +26,8 @@ function AppContent() {
   const location = useLocation();
 
   // 底部 TabBar 白名单
-  const tabBarRoutes = ['/calendar', '/products', '/glossary'];
-  const showTabBar = tabBarRoutes.includes(location.pathname);
+  const tabBarRoutes = ['/calendar', '/calendar/event', '/products', '/glossary'];
+  const showTabBar = tabBarRoutes.some((r) => location.pathname.startsWith(r));
 
   // 默认首页跳转到 /products
   React.useEffect(() => {
@@ -43,7 +46,15 @@ function AppContent() {
               key={route.path}
               path={route.path}
               element={<route.component />}
-            />
+            >
+              {route.children?.map((child) => (
+                <Route
+                  key={child.path}
+                  path={child.path}
+                  element={<child.component />}
+                />
+              ))}
+            </Route>
           ))}
         </Routes>
       </div>

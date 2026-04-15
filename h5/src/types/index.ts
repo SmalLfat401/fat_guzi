@@ -111,6 +111,49 @@ export interface CalendarEvent {
   createdAt?: string;
 }
 
+/**
+ * H5 情报事件（来自 weibo_intel，已发布）
+ */
+export interface IntelCalendarEvent {
+  id: string;
+  date: string;
+  time?: string;
+  type: 'expo';
+  icon: string;
+  name: string;
+  venue?: string;
+  badge: string;
+  cover?: string;
+  price?: string;
+}
+
+/** H5 情报详情 */
+export interface IntelEventDetail {
+  id: string;
+  uuid: string;
+  date: string;
+  end_date?: string;
+  time?: string;
+  type: string;
+  icon: string;
+  name: string;
+  description?: string;
+  venue?: string;
+  city?: string;
+  badge: string;
+  cover?: string;
+  price?: string;
+  purchase_url?: string;
+  participants: string[];
+  related_ips: string[];
+  tags: string[];
+  source_post_url?: string;
+  author_nickname?: string;
+  status: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
 export interface CalendarFilter {
   type?: CalendarEvent['type'];
   city?: string;

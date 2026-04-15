@@ -460,13 +460,3 @@ def get_crawler_task_service():
     """获取爬虫任务服务（懒加载，避免循环导入）"""
     from app.services.crawler_task_service import crawler_task_service
     return crawler_task_service
-
-
-# ====================
-# 热点追踪监控服务（懒加载）
-# ====================
-
-def get_intel_monitor():
-    """获取热点追踪监控器（懒加载，避免循环导入）"""
-    from app.services.intel_monitor import intel_monitor
-    return intel_monitor

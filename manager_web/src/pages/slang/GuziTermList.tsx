@@ -43,7 +43,7 @@ const GuziTermList: React.FC = () => {
   // AI 助写相关状态
   const [assistModalVisible, setAssistModalVisible] = useState(false);
   const [assistTerm, setAssistTerm] = useState<GuziTerm | null>(null);
-  const [promptTemplate, setPromptTemplate] = useState(DEFAULT_ASSIST_PROMPT);
+  const [promptTemplate] = useState(DEFAULT_ASSIST_PROMPT);
   const [contextData, setContextData] = useState('');
   const [assistLoading, setAssistLoading] = useState(false);
   // AI 口播文案内容（流式回填）

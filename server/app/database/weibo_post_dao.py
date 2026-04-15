@@ -253,7 +253,7 @@ class WeiboPostDAO:
         if source_uids:
             query["source_uid"] = {"$in": source_uids}
 
-        cursor = self.collection.find(query).limit(limit).sort("created_at_dt", DESCENDING)
+        cursor = self.collection.find(query).limit(limit).sort("created_at_dt", ASCENDING)
 
         posts = []
         for doc in cursor:
@@ -412,6 +412,32 @@ class WeiboPostDAO:
         if source_uids:
             query["source_uid"] = {"$in": source_uids}
         return self.collection.count_documents(query)
+
+    def reset_status_by_status(self, from_status: int, to_status: int) -> int:
+        """
+        批量重置帖子情报状态
+
+        Args:
+            from_status: 原状态
+            to_status: 目标状态
+
+        Returns:
+            更新的数量
+        """
+        result = self.collection.update_many(
+            {"intel_status": from_status},
+            {
+                "$set": {
+                    "intel_status": to_status,
+                    "updated_at": datetime.utcnow(),
+                },
+                # 清除提取信息，避免残留干扰
+                "$unset": {
+                    "intel_extracted_info": "",
+                }
+            }
+        )
+        return result.modified_count
 
 
 def create_weibo_post_from_api_data(

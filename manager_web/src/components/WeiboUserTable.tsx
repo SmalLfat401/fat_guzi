@@ -14,7 +14,7 @@ import { crawlerApi } from '../api/crawler';
 import type { CrawlerTaskStatus } from '../api/crawler';
 import dayjs from 'dayjs';
 
-type CrawlerMode = 'full' | 'limited' | 'specific' | 'category';
+type CrawlerMode = 'full' | 'limited' | 'specific';
 import 'dayjs/locale/zh-cn';
 import '../styles/global.scss';
 
@@ -87,8 +87,8 @@ const WeiboUserTable: React.FC = () => {
       const status = await crawlerApi.getCrawlerTaskStatus();
       setTaskStatus(status);
       if (status.status !== 'idle' && status.status !== undefined) {
-        if (status.mode) setMode(status.mode);
-        if (status.max_posts > 0) setLimitedCount(status.max_posts);
+        if (status.mode) setMode(status.mode as CrawlerMode);
+        if (status.max_posts != null && status.max_posts > 0) setLimitedCount(status.max_posts);
         if (status.target_uids && status.target_uids.length > 0) setTargetUids(status.target_uids);
       }
     } catch (err) {
@@ -168,7 +168,7 @@ const WeiboUserTable: React.FC = () => {
       let result: { success: boolean; error?: string; message?: string };
       switch (action) {
         case 'start':
-          if (mode === 'category' && selectedCategory) {
+          if ((mode as string) === 'category' && selectedCategory) {
             result = await crawlerApi.startCrawlerByCategory({
               category_id: selectedCategory,
               mode: 'full',

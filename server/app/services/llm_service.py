@@ -14,9 +14,10 @@ class LLMService:
 
     BASE_URL = settings.llm_base_url
 
-    def __init__(self, api_key: Optional[str] = None, model: Optional[str] = None):
+    def __init__(self, api_key: Optional[str] = None, model: Optional[str] = None, timeout: float = 120.0):
         self.api_key = api_key or settings.llm_api_key
         self.model = model or settings.llm_model
+        self.timeout = timeout  # 默认120秒超时
         self._client: Optional[httpx.AsyncClient] = None
 
     def _get_client(self) -> httpx.AsyncClient:
@@ -27,7 +28,7 @@ class LLMService:
                     "Authorization": f"Bearer {self.api_key}",
                     "Content-Type": "application/json",
                 },
-                timeout=httpx.Timeout(60.0, connect=10.0),
+                timeout=httpx.Timeout(self.timeout, connect=10.0),
             )
         return self._client
 
@@ -53,6 +54,9 @@ class LLMService:
 
         Returns:
             模型生成的完整文本
+
+        Raises:
+            Exception: API 返回非 200 状态码或响应体为空时抛出，带明确原因
         """
         client = self._get_client()
         payload = {
@@ -65,9 +69,28 @@ class LLMService:
 
         response = await client.post("/chat/completions", json=payload)
         response.raise_for_status()
-        data = response.json()
 
-        return data["choices"][0]["message"]["content"]
+        # 检查响应体是否为空
+        text = response.text.strip()
+        if not text:
+            raise Exception(f"API返回空响应（状态码={response.status_code}），请检查 API Key、模型名称或是否触发限流")
+
+        try:
+            data = json.loads(text)
+        except json.JSONDecodeError as e:
+            raise Exception(f"API返回非JSON格式（状态码={response.status_code}）：{text[:200]}")
+
+        # 检查 OpenAI 协议标准错误格式
+        if "error" in data:
+            err = data["error"]
+            err_msg = err.get("message", "") or str(err)
+            raise Exception(f"API返回错误：{err_msg}")
+
+        content = data.get("choices", [{}])[0].get("message", {}).get("content", "")
+        if not content:
+            raise Exception("API返回内容为空")
+
+        return content
 
     async def stream_chat(
         self,

@@ -28,7 +28,8 @@ interface AutomationPanelProps {
   targetUids: string[];
   users: Array<{ nickname: string; uid: string }>;
   actionLoading: string | null;
-  onModeChange: (mode: CrawlerMode) => void;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  onModeChange: (mode: any) => void;
   onLimitedCountChange: (count: number) => void;
   onTargetUidsChange: (uids: string[]) => void;
   onSelectCategory: (categoryId: string | null) => void;

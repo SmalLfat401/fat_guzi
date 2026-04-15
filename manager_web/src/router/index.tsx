@@ -11,6 +11,11 @@ import CoserTermList from '../pages/slang/CoserTermList';
 import ConventionTermList from '../pages/slang/ConventionTermList';
 import GameTermList from '../pages/slang/GameTermList';
 import GuziProductList from '../pages/guzi/GuziProductList';
+import WeiboIntelList from '../pages/weiboIntel/WeiboIntelList';
+import IntelManagement from '../pages/weiboIntel/IntelManagement';
+import WeiboIntelDetailPage from '../pages/weiboIntel/WeiboIntelDetail';
+import WeiboIntelEditPage from '../pages/weiboIntel/WeiboIntelEdit';
+import KeywordLibrary from '../pages/weiboIntel/KeywordLibrary';
 
 const router = createBrowserRouter([
   {
@@ -48,6 +53,26 @@ const router = createBrowserRouter([
       {
         path: 'guzi-products',
         element: <GuziProductList />,
+      },
+      {
+        path: 'weibo-intel',
+        element: <WeiboIntelList />,
+      },
+      {
+        path: 'weibo-intel/management',
+        element: <IntelManagement />,
+      },
+      {
+        path: 'weibo-intel/detail/:id',
+        element: <WeiboIntelDetailPage />,
+      },
+      {
+        path: 'weibo-intel/edit',
+        element: <WeiboIntelEditPage />,
+      },
+      {
+        path: 'weibo-intel/keywords',
+        element: <KeywordLibrary />,
       },
       {
         path: 'dashboard',

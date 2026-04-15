@@ -110,7 +110,7 @@ const CrawlerMonitor: React.FC = () => {
         time: dayjs().format('HH:mm:ss'),
         success: result.success,
         message: result.success ? 'API采集成功' : (result.error || 'API采集失败'),
-        data_count: result.data?.data?.list?.length || 0,
+        data_count: result.saved_count || 0,
       };
 
       setCrawlLogs(prev => [newLog, ...prev].slice(0, 50));
