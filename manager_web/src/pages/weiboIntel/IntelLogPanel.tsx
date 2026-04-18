@@ -4,7 +4,7 @@ import {
   ClearOutlined,
   DownloadOutlined,
 } from '@ant-design/icons';
-import { apiClient, API_BASE_URL } from '../../api/config';
+import { API_BASE_URL } from '../../api/config';
 
 const { Text: Txt } = Typography;
 

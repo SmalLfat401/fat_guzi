@@ -65,6 +65,10 @@ const WeiboPosts: React.FC = () => {
 
   // 爬取并保存长文本
   const handleFetchLongText = async (post: WeiboPost) => {
+    if (!post.mblogid) {
+      message.error('帖子ID不存在');
+      return;
+    }
     setLongTextLoading(true);
     try {
       // 先爬取
@@ -73,7 +77,7 @@ const WeiboPosts: React.FC = () => {
         message.error(fetchResult.error || '爬取长文本失败');
         return;
       }
-      
+
       if (!fetchResult.longTextContent) {
         message.info('该微博没有长文本内容');
         return;
@@ -98,8 +102,8 @@ const WeiboPosts: React.FC = () => {
     }
   };
 
-  const renderContent = (text: string, textRaw?: string) => {
-    const content = textRaw || text.replace(/<[^>]+>/g, '');
+  const renderContent = (text: string | undefined, textRaw?: string) => {
+    const content = textRaw || (text ? text.replace(/<[^>]+>/g, '') : '');
     return content.slice(0, 200) + (content.length > 200 ? '...' : '');
   };
 
@@ -223,7 +227,7 @@ const WeiboPosts: React.FC = () => {
       );
     }
 
-    const content = selectedPost.long_text || selectedPost.text_raw || selectedPost.text.replace(/<[^>]+>/g, '');
+    const content = selectedPost.long_text || selectedPost.text_raw || (selectedPost.text?.replace(/<[^>]+>/g, '') || '');
 
     return (
       <div style={{ padding: 16, height: '100%', overflow: 'auto' }}>
@@ -322,7 +326,7 @@ const WeiboPosts: React.FC = () => {
           <Card size="small" bordered={false} style={{ background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)' }}>
             <div style={{ color: '#fff', textAlign: 'center' }}>
               <div style={{ fontSize: 20, fontWeight: 'bold' }}>
-                {posts.reduce((sum, p) => sum + p.reposts_count, 0)}
+                {posts.reduce((sum, p) => sum + (p.reposts_count || 0), 0)}
               </div>
               <div style={{ fontSize: 11, opacity: 0.9 }}>总转发</div>
             </div>
@@ -332,7 +336,7 @@ const WeiboPosts: React.FC = () => {
           <Card size="small" bordered={false} style={{ background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)' }}>
             <div style={{ color: '#fff', textAlign: 'center' }}>
               <div style={{ fontSize: 20, fontWeight: 'bold' }}>
-                {posts.reduce((sum, p) => sum + p.comments_count, 0)}
+                {posts.reduce((sum, p) => sum + (p.comments_count || 0), 0)}
               </div>
               <div style={{ fontSize: 11, opacity: 0.9 }}>总评论</div>
             </div>

@@ -289,6 +289,7 @@ export interface IntelFilter {
   limit?: number;
   status?: IntelStatus;
   category?: IntelCategory;
+  is_published?: boolean;
   has_alert?: boolean;
   search?: string;
   start_date_from?: string;

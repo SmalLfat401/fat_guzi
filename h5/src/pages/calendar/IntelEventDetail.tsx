@@ -84,7 +84,9 @@ const IntelEventDetailPage: React.FC = () => {
             <Skeleton animated style={{ height: '2.4rem', width: '70%', marginBottom: '1rem' }} />
             <Skeleton animated style={{ height: '1.4rem', width: '50%', marginBottom: '0.6rem' }} />
             <Skeleton animated style={{ height: '1.4rem', width: '40%', marginBottom: '0.6rem' }} />
-            <Skeleton animated paragraph={{ rows: 3 }} style={{ marginTop: '2rem' }} />
+            <Skeleton animated style={{ marginTop: '2rem' }} />
+            <Skeleton animated style={{ height: '1rem', width: '60%', marginTop: '0.5rem' }} />
+            <Skeleton animated style={{ height: '1rem', width: '40%', marginTop: '0.5rem' }} />
           </div>
         </div>
       )}

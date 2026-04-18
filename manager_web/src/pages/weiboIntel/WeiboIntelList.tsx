@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import {
-  message, Space, Tag, Button, Table, Tooltip, Badge, Row, Col,
+  message, Space, Tag, Button, Table, Tooltip, Row, Col,
   Card, Empty, Spin, Divider, Alert, Form, Input, Select, DatePicker,
   Modal, Switch, Slider, InputNumber,
 } from 'antd';
@@ -16,7 +16,7 @@ import 'dayjs/locale/zh-cn';
 import '../../styles/global.scss';
 import { weiboIntelApi } from '../../api/weiboIntel';
 import type { WeiboPost } from '../../types/weibo';
-import type { SingleExtractResult, IntelConfig, BatchResult } from '../../types/weiboIntel';
+import type { SingleExtractResult, IntelConfig } from '../../types/weiboIntel';
 import { INTEL_CATEGORY_MAP } from '../../types/weiboIntel';
 import IntelLogPanel from './IntelLogPanel';
 
@@ -65,10 +65,8 @@ const WeiboIntelList: React.FC = () => {
   const [schedulerEnabled, setSchedulerEnabled] = useState(false);
   const [schedulerInterval, setSchedulerInterval] = useState(60);
   const [batchStatus, setBatchStatus] = useState<'idle' | 'running' | 'completed' | 'failed' | 'cancelling'>('idle');
-  const [lastBatchResult, setLastBatchResult] = useState<BatchResult | null>(null);
   const [schedulerStarting, setSchedulerStarting] = useState(false);
   const [schedulerStopping, setSchedulerStopping] = useState(false);
-  const [batchCancelling, setBatchCancelling] = useState(false);
 
   // 配置弹窗
   const [configModalOpen, setConfigModalOpen] = useState(false);
@@ -85,7 +83,6 @@ const WeiboIntelList: React.FC = () => {
       setSchedulerEnabled(data.scheduler_enabled);
       setSchedulerInterval(data.scheduler_interval);
       setBatchStatus(data.batch_status as typeof batchStatus);
-      setLastBatchResult(data.last_batch_result || null);
       setPostStats(data.post_stats);
     } catch {}
   };
@@ -128,7 +125,6 @@ const WeiboIntelList: React.FC = () => {
 
   // 取消批次
   const handleCancelBatch = async () => {
-    setBatchCancelling(true);
     try {
       const result = await weiboIntelApi.cancelBatch();
       if (result.success) {
@@ -138,10 +134,9 @@ const WeiboIntelList: React.FC = () => {
       }
     } catch (err) {
       message.error('取消批次失败: ' + (err as Error).message);
-    } finally {
-      setBatchCancelling(false);
     }
   };
+  void handleCancelBatch; // 保留以备后用
 
   // 加载情报系统配置
   const fetchIntelConfig = async () => {
@@ -321,25 +316,21 @@ const WeiboIntelList: React.FC = () => {
 
   // 触发单个批次（临时触发，不影响调度器）
   const handleTriggerBatch = async () => {
-    if (batchStatus === 'running' || batchStatus === 'cancelling') {
+    if (batchStatus === 'running') {
       message.warning('批次任务正在执行中，请稍候');
       return;
     }
     const size = intelConfig?.batch_size || 20;
-    setBatchTriggering(true);
     try {
       const result = await weiboIntelApi.triggerBatch(size);
-      setLastBatchResult(result.result);
       setBatchStatus('running');
-      const batches = result.result.batches_executed || 1;
       message.success(`已触发批次执行，处理 ${result.result.posts_processed} 条`);
       setTimeout(fetchSchedulerStatus, 2000);
     } catch (err) {
       message.error(err instanceof Error ? err.message : '触发失败');
-    } finally {
-      setBatchTriggering(false);
     }
   };
+  void handleTriggerBatch; // 保留以备后用
 
   // 保存配置
   const handleSaveConfig = async (values: {

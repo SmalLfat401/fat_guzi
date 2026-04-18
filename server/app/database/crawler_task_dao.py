@@ -42,6 +42,9 @@ class CrawlerTaskDao:
                 self.collection.create_index("status")
             if "created_at_-1" not in existing_indexes:
                 self.collection.create_index([("created_at", DESCENDING)])
+            # 复合索引：优化 find_active + 排序场景
+            if "status_1_created_at_-1" not in existing_indexes:
+                self.collection.create_index([("status", 1), ("created_at", DESCENDING)])
 
             logger.info(f"MongoDB索引检查完成: {COLLECTION_NAME}")
         except Exception as e:
@@ -80,18 +83,71 @@ class CrawlerTaskDao:
         return None
 
     def find_active(self) -> Optional[CrawlerTask]:
-        """查找当前正在运行或暂停的任务"""
-        doc = self.collection.find_one({
-            "status": {"$in": [TaskStatus.RUNNING.value, TaskStatus.PAUSED.value]}
-        })
+        """查找当前正在运行或暂停的任务（仅返回核心字段，排除大数组）"""
+        # 排除 logs 和 user_progress，这两个字段可能很大
+        projection = {
+            "_id": 0,
+            "task_id": 1,
+            "status": 1,
+            "category_id": 1,
+            "category_name": 1,
+            "mode": 1,
+            "max_posts": 1,
+            "target_uids": 1,
+            "total_users": 1,
+            "processed_users": 1,
+            "failed_users": 1,
+            "total_blogs": 1,
+            "saved_blogs": 1,
+            "total_longtext": 1,
+            "saved_longtext": 1,
+            "failed_longtext": 1,
+            "current_uid": 1,
+            "paused_after_uid": 1,
+            "started_at": 1,
+            "paused_at": 1,
+            "completed_at": 1,
+            "created_at": 1,
+            "updated_at": 1,
+        }
+        doc = self.collection.find_one(
+            {"status": {"$in": [TaskStatus.RUNNING.value, TaskStatus.PAUSED.value]}},
+            projection=projection
+        )
         if doc:
             doc.pop("_id", None)
             return CrawlerTask(**doc)
         return None
 
     def find_latest(self) -> Optional[CrawlerTask]:
-        """查找最新创建的任务"""
-        doc = self.collection.find_one(sort=[("created_at", DESCENDING)])
+        """查找最新创建的任务（仅返回核心字段，排除大数组）"""
+        # 排除 logs 和 user_progress，这两个字段可能很大
+        projection = {
+            "_id": 0,
+            "task_id": 1,
+            "status": 1,
+            "category_id": 1,
+            "category_name": 1,
+            "mode": 1,
+            "max_posts": 1,
+            "target_uids": 1,
+            "total_users": 1,
+            "processed_users": 1,
+            "failed_users": 1,
+            "total_blogs": 1,
+            "saved_blogs": 1,
+            "total_longtext": 1,
+            "saved_longtext": 1,
+            "failed_longtext": 1,
+            "current_uid": 1,
+            "paused_after_uid": 1,
+            "started_at": 1,
+            "paused_at": 1,
+            "completed_at": 1,
+            "created_at": 1,
+            "updated_at": 1,
+        }
+        doc = self.collection.find_one(sort=[("created_at", DESCENDING)], projection=projection)
         if doc:
             doc.pop("_id", None)
             return CrawlerTask(**doc)

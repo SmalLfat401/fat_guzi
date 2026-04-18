@@ -314,21 +314,22 @@ class CrawlerTaskService:
             return self._current_task.get_dict()
 
     def restore_from_db(self) -> bool:
-        """从数据库恢复任务"""
+        """从数据库恢复任务（仅恢复核心状态，日志和用户进度懒加载）"""
         with self._lock:
-            # 查找运行中的任务
-            task = crawler_task_dao.find_active()
-            if task:
-                self._current_task = task
-                logger.info(f"[CrawlerTaskService] 从数据库恢复任务: {task.task_id}, "
-                           f"状态={task.status}, 进度={task.processed_users}/{task.total_users}")
+            # 查找运行中的任务（仅查询核心字段）
+            task_doc = crawler_task_dao.find_active()
+            if task_doc:
+                self._current_task = task_doc
+                # 日志和 user_progress 为空，需要时再加载
+                logger.info(f"[CrawlerTaskService] 从数据库恢复任务: {task_doc.task_id}, "
+                           f"状态={task_doc.status}, 进度={task_doc.processed_users}/{task_doc.total_users}")
                 return True
 
-            # 没有运行中的任务，尝试获取最新的
-            task = crawler_task_dao.find_latest()
-            if task:
-                self._current_task = task
-                logger.info(f"[CrawlerTaskService] 加载最新任务: {task.task_id}, 状态={task.status}")
+            # 没有运行中的任务，尝试获取最新的（仅核心字段）
+            latest_doc = crawler_task_dao.find_latest()
+            if latest_doc:
+                self._current_task = latest_doc
+                logger.info(f"[CrawlerTaskService] 加载最新任务: {latest_doc.task_id}, 状态={latest_doc.status}")
                 return True
 
             logger.info("[CrawlerTaskService] 没有找到历史任务")

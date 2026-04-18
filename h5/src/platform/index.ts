@@ -3,7 +3,7 @@
  * 支持：微信公众号(H5)、微信小程序、支付宝小程序、抖音小程序
  */
 
-export type Platform = 'h5' | 'weapp' | 'alipay' | 'douyin';
+export type Platform = 'h5' | 'weapp' | 'alipay' | 'douyin' | 'wechat';
 
 let currentPlatform: Platform = 'h5';
 

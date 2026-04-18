@@ -44,7 +44,7 @@ def _intel_to_event(intel: WeiboIntel) -> dict:
 async def list_intel_events(
     mode: str = Query("calendar", description="视图模式: calendar=日历视图, list=列表视图"),
     skip: int = Query(0, ge=0),
-    limit: int = Query(200, ge=1, le=500),
+    limit: int = Query(200, ge=1, le=2000),  # 提高最大限制到2000，支持日历全量加载
     start_date: Optional[str] = Query(None, description="YYYY-MM-DD，筛选开始日期（包含）"),
     end_date: Optional[str] = Query(None, description="YYYY-MM-DD，筛选结束日期（包含）"),
     category: Optional[str] = Query(None, description="情报类别过滤，如 convention, book_signing 等"),
@@ -66,7 +66,7 @@ async def list_intel_events(
     if mode == "calendar":
         if not end_date:
             end_date = "2099-12-31"
-        limit = 500  # 日历视图一次性获取当月（或范围）所有事件
+        limit = 2000  # 日历视图一次性获取当月（或范围）所有事件，上限2000条
 
     # 列表视图: 从今天开始，按分页返回
     if mode == "list":

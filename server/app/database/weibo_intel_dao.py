@@ -85,6 +85,15 @@ class WeiboIntelDAO:
                 self.collection.create_index([("created_at", DESCENDING)])
             if "event_start_date_1" not in existing:
                 self.collection.create_index("event_start_date")
+            if "event_end_date_1" not in existing:
+                self.collection.create_index("event_end_date")
+            # 复合索引：优化 H5 日历查询
+            if "status_1_is_published_1_event_start_date_1" not in existing:
+                self.collection.create_index([
+                    ("status", ASCENDING),
+                    ("is_published", ASCENDING),
+                    ("event_start_date", ASCENDING)
+                ])
             if "alert_type_1" not in existing:
                 self.collection.create_index("alert_type")
             if "alert_resolved_1" not in existing:
@@ -483,6 +492,23 @@ class WeiboIntelDAO:
         }
         return self.update(intel_id, update_data)
 
+    def _find_by_query(
+        self,
+        query: Dict[str, Any],
+        skip: int = 0,
+        limit: int = 20,
+        sort: str = "event_start_date",
+        sort_direction: int = ASCENDING
+    ) -> Tuple[List[WeiboIntel], int]:
+        """通用查询方法"""
+        total = self.collection.count_documents(query)
+        cursor = self.collection.find(query).skip(skip).limit(limit).sort(sort, sort_direction)
+        results = []
+        for doc in cursor:
+            doc.pop("_id", None)
+            results.append(WeiboIntel(**doc))
+        return results, total
+
     def find_published_for_h5(
         self,
         skip: int = 0,
@@ -497,20 +523,31 @@ class WeiboIntelDAO:
         支持日期范围过滤和类别过滤。
         - 日历视图: 传入 start_date + end_date 获取当月所有事件，用于显示圆点
         - 列表视图: 传入 start_date=今天，不过滤 end_date，获取未来所有活动
+
+        日期范围逻辑：找出所有与查询时间段有交集的活动
+        即：event_start_date <= end_date AND (event_end_date >= start_date OR event_end_date 为空)
+        优化：使用 event_start_date 范围查询 + event_end_date 条件，利用复合索引
         """
         query: Dict[str, Any] = {
             "status": IntelStatus.APPROVED.value,
             "is_published": True,
         }
-        if start_date:
-            query["event_start_date"] = {"$gte": start_date}
-        if end_date:
-            if "event_start_date" in query:
-                query["event_start_date"]["$lte"] = end_date
-            else:
-                query["event_start_date"] = {"$lte": end_date}
         if category:
             query["category"] = category
+
+        # 日期范围查询：活动开始时间必须在查询范围内
+        if start_date and end_date:
+            # 核心：event_start_date 在 [start_date, end_date] 区间内
+            query["event_start_date"] = {"$gte": start_date, "$lte": end_date}
+            # 额外：event_end_date >= start_date（多日活动）或 event_end_date 不存在（单日）
+            query["$or"] = [
+                {"event_end_date": {"$gte": start_date}},
+                {"event_end_date": {"$exists": False}},
+            ]
+        elif start_date:
+            query["event_start_date"] = {"$gte": start_date}
+        elif end_date:
+            query["event_start_date"] = {"$lte": end_date}
 
         total = self.collection.count_documents(query)
         cursor = self.collection.find(query).skip(skip).limit(limit).sort("event_start_date", ASCENDING)

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import {
   message, Row, Col, Tag, Button, Space, Table, Tooltip,
-  Badge, Popconfirm, Card, Modal, Descriptions, Select,
+  Badge, Card, Modal, Descriptions, Select,
 } from 'antd';
 import {
   CloudUploadOutlined, CloudDownloadOutlined,
@@ -12,7 +12,7 @@ import dayjs from 'dayjs';
 import 'dayjs/locale/zh-cn';
 import '../../styles/global.scss';
 import { weiboIntelApi } from '../../api/weiboIntel';
-import type { WeiboIntelItem } from '../../types/weiboIntel';
+import type { WeiboIntelItem, SourcePostRef } from '../../types/weiboIntel';
 import {
   INTEL_CATEGORY_MAP,
   INTEL_STATUS_MAP,
@@ -58,13 +58,14 @@ const IntelManagement: React.FC = () => {
     } catch {}
   };
 
+  // 修复 category 类型
   const fetchList = async () => {
     setLoading(true);
     try {
       const skip = (pageInfo.page - 1) * pageInfo.pageSize;
       let result: { items: WeiboIntelItem[]; total: number };
       if (activeTab === 'approved') {
-        result = await weiboIntelApi.getList({ status: 'approved', skip, limit: pageInfo.pageSize, category: filterCategory, is_published: filterPublished });
+        result = await weiboIntelApi.getList({ status: 'approved', skip, limit: pageInfo.pageSize, category: filterCategory as any, is_published: filterPublished });
       } else if (activeTab === 'pending') {
         result = await weiboIntelApi.getPendingList(skip, pageInfo.pageSize);
       } else {
@@ -205,7 +206,7 @@ const IntelManagement: React.FC = () => {
     }
   };
 
-  const handleDelete = async (id: string) => {
+  const _handleDelete = async (id: string) => {
     try {
       await weiboIntelApi.delete(id);
       message.success('删除成功');
@@ -215,6 +216,7 @@ const IntelManagement: React.FC = () => {
       message.error((err as Error).message || '删除失败');
     }
   };
+  void _handleDelete; // 保留以备后用
 
   const getCategoryTagColor = (cat: string) => {
     const colors: Record<string, string> = {
@@ -257,7 +259,7 @@ const IntelManagement: React.FC = () => {
       title: '地点',
       key: 'location',
       width: 100,
-      render: (_, record) => (
+      render: (_: unknown, record: WeiboIntelItem) => (
         <span>{record.event_city || record.event_location || '-'}</span>
       ),
     },
@@ -315,7 +317,7 @@ const IntelManagement: React.FC = () => {
       title: '日历',
       key: 'calendar',
       width: 70,
-      render: (_, record) => (
+      render: (_: unknown, record: WeiboIntelItem) => (
         record.synced_to_calendar
           ? <Badge status="success" text={<span style={{ fontSize: 12 }}>已同步</span>} />
           : <span style={{ color: '#ccc' }}>-</span>
@@ -325,7 +327,7 @@ const IntelManagement: React.FC = () => {
       title: '发布H5',
       key: 'published',
       width: 80,
-      render: (_, record) => (
+      render: (_: unknown, record: WeiboIntelItem) => (
         <Switch
           size="small"
           checked={record.is_published}
@@ -347,7 +349,7 @@ const IntelManagement: React.FC = () => {
       key: 'action',
       width: activeTab === 'pending' ? 120 : 100,
       fixed: 'right',
-      render: (_, record) => (
+      render: (_: unknown, record: WeiboIntelItem) => (
         <Space size="small">
           {/* 已提取情报 / 审核队列 / 告警中心：都有查看按钮 */}
           <Button
