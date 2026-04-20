@@ -9,6 +9,7 @@ import CalendarPage from '@/pages/calendar';
 import IntelEventDetailPage from '@/pages/calendar/IntelEventDetail';
 import ProductsPage from '@/pages/products';
 import ProductDetailPage from '@/pages/products/ProductDetail';
+import WantGuziPage from '@/pages/products/WantGuzi';
 import GlossaryPage from '@/pages/glossary';
 
 // 路由配置
@@ -18,6 +19,7 @@ const routes = [
   ]},
   { path: '/products', component: ProductsPage },
   { path: '/product/:id', component: ProductDetailPage },
+  { path: '/want-guzi', component: WantGuziPage },
   { path: '/glossary', component: GlossaryPage },
 ];
 
@@ -26,7 +28,7 @@ function AppContent() {
   const location = useLocation();
 
   // 底部 TabBar 白名单
-  const tabBarRoutes = ['/calendar', '/calendar/event', '/products', '/glossary'];
+  const tabBarRoutes = ['/calendar', '/calendar/event', '/products', '/product', '/want-guzi', '/glossary'];
   const showTabBar = tabBarRoutes.some((r) => location.pathname.startsWith(r));
 
   // 默认首页跳转到 /products

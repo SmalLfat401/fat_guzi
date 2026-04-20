@@ -453,6 +453,41 @@ export async function fetchIntelEventDetail(
   }
 }
 
+// ──────────────────────────────────────────────
+// 求谷表单 API
+// ──────────────────────────────────────────────
+
+export interface WantGuziForm {
+  ip_name: string;
+  category_tags?: string[];
+  remark?: string;
+}
+
+export interface WantGuziResponse {
+  _id: string;
+  ip_name: string;
+  category_tags: string[];
+  remark: string | null;
+  status: 'pending' | 'processing' | 'completed' | 'closed';
+  reply: string | null;
+  admin_remark: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+/**
+ * H5端：提交求谷表单
+ */
+export async function submitWantGuzi(form: WantGuziForm): Promise<WantGuziResponse | null> {
+  try {
+    const response = await apiClient.post<WantGuziResponse>('/want-guzi', form);
+    return response as WantGuziResponse;
+  } catch (error) {
+    console.error('提交求谷表单失败:', error);
+    throw error;
+  }
+}
+
 export default {
   fetchHomeData,
   fetchCalendarEvents,

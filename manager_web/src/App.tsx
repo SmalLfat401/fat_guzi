@@ -1,7 +1,7 @@
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { Layout, Menu, ConfigProvider, theme } from 'antd';
 import zhCN from 'antd/locale/zh_CN';
-import { UserOutlined, DashboardOutlined, SettingOutlined, TagOutlined, DatabaseOutlined, BulbOutlined, ShoppingOutlined, BookOutlined, FireOutlined, CalendarOutlined, HeartOutlined, KeyOutlined, ThunderboltOutlined, RobotOutlined, AlertOutlined } from '@ant-design/icons';
+import { UserOutlined, DashboardOutlined, SettingOutlined, TagOutlined, DatabaseOutlined, BulbOutlined, ShoppingOutlined, BookOutlined, FireOutlined, CalendarOutlined, HeartOutlined, KeyOutlined, ThunderboltOutlined, RobotOutlined, AlertOutlined, GiftOutlined } from '@ant-design/icons';
 import './styles/global.scss';
 
 const { Header, Content, Sider } = Layout;
@@ -34,6 +34,7 @@ function App() {
       ],
     },
     { key: '/guzi-products', icon: <ShoppingOutlined />, label: '谷子商品' },
+    { key: '/want-guzi', icon: <GiftOutlined />, label: '求谷管理' },
     { key: '/dashboard', icon: <DashboardOutlined />, label: '数据看板' },
     {
       key: 'settings',

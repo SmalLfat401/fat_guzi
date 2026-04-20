@@ -215,7 +215,6 @@ const ProductsPage: React.FC = () => {
           <Tag
             key={tag._id}
             className={`ip-filter-tag ${selectedIpTag === tag._id ? 'active' : ''}`}
-            color={tag.color}
             onClick={() => handleIpTagFilter(tag._id)}
           >
             {tag.name}
@@ -335,6 +334,12 @@ const ProductsPage: React.FC = () => {
 
       {/* 底部安全区占位 */}
       <div className="bottom-safe-area" />
+
+      {/* 求谷悬浮按钮 */}
+      <div className="want-guzi-fab" onClick={() => navigate('/want-guzi')}>
+        <span className="fab-icon">🎁</span>
+        <span className="fab-text">求谷</span>
+      </div>
     </div>
   );
 };

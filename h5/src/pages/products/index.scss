@@ -1,11 +1,12 @@
 /**
- * 商品列表页样式
+ * 商品列表页 + 求谷表单页面样式
  */
 @use '@/styles/variables.scss' as *;
 
 .products-page {
   min-height: 100vh;
   background: $bg-page;
+  padding-top: $nav-height;
   padding-bottom: calc($tabbar-height + env(safe-area-inset-bottom));
 
   // 固定顶部导航栏
@@ -16,6 +17,10 @@
     right: 0;
     z-index: 100;
     background: $bg-card;
+
+    :global(.adm-nav-bar) {
+      --adm-font-size-9: 1.8rem;
+    }
   }
 
   // SearchBar + 标签筛选（sticky 整体吸附在导航栏下方）
@@ -164,6 +169,7 @@
     gap: $spacing-md;
   }
 
+  // 商品卡片
   .product-card {
     border-radius: $radius-md;
     overflow: hidden;
@@ -317,5 +323,141 @@
   // 底部安全区
   .bottom-safe-area {
     height: calc($tabbar-height + env(safe-area-inset-bottom));
+  }
+}
+
+// =============================================
+// 求谷表单页
+// =============================================
+.want-guzi-page {
+  min-height: 100vh;
+  background: $bg-page;
+
+  .want-guzi-content {
+    padding: 1.6rem;
+  }
+
+  .form-intro {
+    text-align: center;
+    padding: 1.6rem 0 2.4rem;
+
+    .intro-icon {
+      font-size: 3.2rem;
+      margin-bottom: 0.8rem;
+    }
+
+    h2 {
+      font-size: $font-size-xl;
+      font-weight: $font-weight-semibold;
+      color: $text-primary;
+      margin: 0 0 0.6rem;
+    }
+
+    p {
+      font-size: $font-size-md;
+      color: $text-tertiary;
+      margin: 0;
+    }
+  }
+
+  .want-guzi-form {
+    background: $bg-card;
+    border-radius: 1.6rem;
+    padding: 1.6rem;
+    margin-bottom: 2rem;
+
+    :global(.adm-form-item) {
+      margin-bottom: 1.6rem;
+
+      &:last-child {
+        margin-bottom: 0;
+      }
+    }
+
+    :global(.adm-form-item-label) {
+      font-size: $font-size-md;
+      font-weight: $font-weight-medium;
+      color: $text-primary;
+      padding-bottom: 0.6rem;
+    }
+
+    :global(.adm-input) {
+      font-size: $font-size-md;
+      padding: 1rem 1.2rem;
+      background: $bg-page;
+      border-radius: 1.2rem;
+    }
+
+    :global(.adm-text-area) {
+      background: $bg-page;
+      border-radius: 1.2rem;
+      padding: 1rem 1.2rem;
+    }
+
+    :global(.adm-selector) {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.8rem;
+    }
+
+    :global(.adm-selector-item) {
+      background: $bg-page;
+      border-radius: 20px;
+      padding: 0.6rem 1.2rem;
+      font-size: $font-size-sm;
+      border: 1px solid $border-color;
+
+      &.adm-selector-item-active {
+        background: rgba($primary-color, 0.1);
+        border-color: $primary-color;
+        color: $primary-color;
+      }
+    }
+
+    .submit-btn {
+      margin-top: 1.6rem;
+      border-radius: 2.4rem;
+      font-size: $font-size-md;
+      font-weight: $font-weight-semibold;
+    }
+  }
+}
+
+// =============================================
+// 求谷悬浮按钮
+// =============================================
+.want-guzi-fab {
+  position: fixed;
+  right: 1.6rem;
+  bottom: calc($tabbar-height + env(safe-area-inset-bottom) + 1.6rem);
+  width: 5.6rem;
+  height: 5.6rem;
+  background: linear-gradient(135deg, $primary-color 0%, #ff6b9d 100%);
+  border-radius: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.2rem;
+  box-shadow: 0 0.4rem 1.2rem rgba($primary-color, 0.4);
+  cursor: pointer;
+  z-index: 100;
+  transition: transform 0.2s, box-shadow 0.2s;
+
+  &:active {
+    transform: scale(0.95);
+    box-shadow: 0 0.2rem 0.6rem rgba($primary-color, 0.3);
+  }
+
+  .fab-icon {
+    font-size: 2rem;
+    line-height: 1;
+  }
+
+  .fab-text {
+    font-size: 1.1rem;
+    font-weight: $font-weight-semibold;
+    color: #fff;
+    line-height: 1;
   }
 }

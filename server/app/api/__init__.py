@@ -13,6 +13,7 @@ from app.api.weibo_crawler_task import router as weibo_crawler_task_router
 from app.api.llm import router as llm_router
 from app.api.h5_glossary import router as h5_glossary_router
 from app.api.weibo_intel import router as weibo_intel_router
+from app.api.want_guzi import router as want_guzi_router
 
 __all__ = [
     "routes_router",
@@ -29,4 +30,5 @@ __all__ = [
     "llm_router",
     "h5_glossary_router",
     "weibo_intel_router",
+    "want_guzi_router",
 ]

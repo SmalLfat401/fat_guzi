@@ -11,6 +11,7 @@ import CoserTermList from '../pages/slang/CoserTermList';
 import ConventionTermList from '../pages/slang/ConventionTermList';
 import GameTermList from '../pages/slang/GameTermList';
 import GuziProductList from '../pages/guzi/GuziProductList';
+import WantGuziList from '../pages/wantGuzi/WantGuziList';
 import WeiboIntelList from '../pages/weiboIntel/WeiboIntelList';
 import IntelManagement from '../pages/weiboIntel/IntelManagement';
 import WeiboIntelDetailPage from '../pages/weiboIntel/WeiboIntelDetail';
@@ -53,6 +54,10 @@ const router = createBrowserRouter([
       {
         path: 'guzi-products',
         element: <GuziProductList />,
+      },
+      {
+        path: 'want-guzi',
+        element: <WantGuziList />,
       },
       {
         path: 'weibo-intel',
