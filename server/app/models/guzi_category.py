@@ -45,6 +45,13 @@ class GuziCategoryUpdate(BaseModel):
     is_active: Optional[bool] = Field(default=None, description="是否启用")
 
 
+class SubCategoryStats(BaseModel):
+    """一级分类下二级分类统计"""
+    total: int = Field(description="二级分类总数")
+    active: int = Field(description="已启用的二级分类数量")
+    inactive: int = Field(description="已禁用的二级分类数量")
+
+
 class GuziCategoryResponse(BaseModel):
     """一级分类响应模型"""
     model_config = {"populate_by_name": True, "by_alias": True}
@@ -56,6 +63,10 @@ class GuziCategoryResponse(BaseModel):
     is_active: bool = True
     created_at: datetime
     updated_at: datetime
+    sub_category_stats: SubCategoryStats = Field(
+        default_factory=lambda: SubCategoryStats(total=0, active=0, inactive=0),
+        description="二级分类统计"
+    )
 
 
 # ──────────────────────────────────────────────

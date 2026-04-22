@@ -14,6 +14,7 @@ from app.models.guzi_category import (
     GuziSubCategoryUpdate,
     GuziSubCategoryResponse,
     GuziCategoryWithSubsResponse,
+    SubCategoryStats,
 )
 from app.database.guzi_category_dao import guzi_category_dao
 from app.database.guzi_sub_category_dao import guzi_sub_category_dao
@@ -174,8 +175,21 @@ async def get_categories(
     page = skip // limit + 1 if limit > 0 else 1
     total_pages = (total + limit - 1) // limit if limit > 0 else 1
 
+    items = []
+    for c in categories:
+        cat_id = c.id
+        sub_total = guzi_sub_category_dao.count(parent_id=cat_id)
+        sub_active = guzi_sub_category_dao.count(parent_id=cat_id, is_active=True)
+        cat_dict = c.model_dump()
+        cat_dict["sub_category_stats"] = SubCategoryStats(
+            total=sub_total,
+            active=sub_active,
+            inactive=sub_total - sub_active,
+        )
+        items.append(GuziCategoryResponse(**cat_dict).model_dump(by_alias=True, exclude_none=True))
+
     return GuziCategoryListResponse(
-        items=[GuziCategoryResponse(**c.model_dump()).model_dump(by_alias=True, exclude_none=True) for c in categories],
+        items=items,
         total=total,
         page=page,
         page_size=limit,

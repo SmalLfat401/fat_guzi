@@ -12,6 +12,12 @@ export interface GuziCategory {
   is_active: boolean;
   created_at: string;
   updated_at: string;
+  /** 该一级分类下的二级分类统计 */
+  sub_category_stats?: {
+    total: number;
+    active: number;
+    inactive: number;
+  };
 }
 
 export interface GuziCategoryCreate {

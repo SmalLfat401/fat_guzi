@@ -160,6 +160,28 @@ const CategoryManager: React.FC<{ onNeedRefresh: () => void }> = ({ onNeedRefres
       ) : <span style={{ color: '#4b5563' }}>默认</span>,
     },
     {
+      title: '二级分类统计',
+      key: 'sub_category_stats',
+      width: 180,
+      render: (_: any, record: GuziCategory) => {
+        const stats = record.sub_category_stats;
+        if (!stats) return <span style={{ color: '#4b5563' }}>-</span>;
+        return (
+          <Space size={4}>
+            <Tag style={{ fontSize: 11, padding: '0 4px' }}>
+              总数 <strong style={{ color: '#1890ff' }}>{stats.total}</strong>
+            </Tag>
+            <Tag style={{ fontSize: 11, padding: '0 4px', color: '#52c41a', borderColor: '#52c41a' }} bordered={false}>
+              启用 {stats.active}
+            </Tag>
+            <Tag style={{ fontSize: 11, padding: '0 4px', color: '#ff4d4f', borderColor: '#ff4d4f' }} bordered={false}>
+              关闭 {stats.inactive}
+            </Tag>
+          </Space>
+        );
+      },
+    },
+    {
       title: '排序',
       dataIndex: 'order',
       key: 'order',
