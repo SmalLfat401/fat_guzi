@@ -164,6 +164,7 @@ async def search_guzi_products(
     sort: Optional[str] = Query("tk_rate_des", description="排序方式: tk_rate_des佣金率降序, tk_rate_asc佣金率升序, total_sales_des销量降序, total_sales_asc销量升序, price_asc价格升序, price_des价格降序"),
     save: bool = Query(False, description="是否将搜索结果批量保存到数据库"),
 ):
+
     platform_list = [p.strip() for p in (platforms or "alimama").split(",") if p.strip()]
 
     results: List[ProductSearchItem] = []
@@ -283,6 +284,7 @@ async def search_guzi_products(
     if save and results:
         to_save: List[GuziProductCreate] = []
         for item in results:
+
             to_save.append(GuziProductCreate(
                 title=item.title,
                 image_url=item.image_url,

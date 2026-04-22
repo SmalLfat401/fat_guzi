@@ -1,5 +1,5 @@
 import { apiClient } from './config';
-import type { GuziTag, GuziTagCreate, GuziTagUpdate, GuziTagStats, TagType } from '../types/guziTag';
+import type { GuziTag, GuziTagCreate, GuziTagUpdate, GuziTagStats, TagType, IpCategory } from '../types/guziTag';
 
 export const guziTagApi = {
   // 获取标签列表
@@ -9,6 +9,7 @@ export const guziTagApi = {
     tag_type?: TagType;
     is_active?: boolean;
     search?: string;
+    ip_category?: IpCategory;
   }) => {
     const response = await apiClient.get<{
       items: GuziTag[];

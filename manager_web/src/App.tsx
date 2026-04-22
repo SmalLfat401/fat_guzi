@@ -2,7 +2,7 @@ import React from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { Layout, Menu, ConfigProvider, theme, Spin } from 'antd';
 import zhCN from 'antd/locale/zh_CN';
-import { UserOutlined, DashboardOutlined, SettingOutlined, TagOutlined, DatabaseOutlined, BulbOutlined, ShoppingOutlined, BookOutlined, FireOutlined, CalendarOutlined, HeartOutlined, KeyOutlined, ThunderboltOutlined, RobotOutlined, AlertOutlined, GiftOutlined } from '@ant-design/icons';
+import { UserOutlined, DashboardOutlined, SettingOutlined, TagOutlined, DatabaseOutlined, BulbOutlined, ShoppingOutlined, BookOutlined, FireOutlined, CalendarOutlined, HeartOutlined, KeyOutlined, ThunderboltOutlined, RobotOutlined, AlertOutlined, GiftOutlined, AppstoreOutlined } from '@ant-design/icons';
 import { useFeatures } from './context/FeaturesContext';
 import './styles/global.scss';
 
@@ -73,6 +73,7 @@ function App() {
       children: [
         { key: '/settings/categories', icon: <TagOutlined />, label: '标签管理' },
         { key: '/settings/guzi-tags', icon: <ThunderboltOutlined />, label: '谷子标签管理' },
+        { key: '/settings/guzi-categories', icon: <AppstoreOutlined />, label: '谷子分类管理' },
         { key: '/settings/commission-account', icon: <KeyOutlined />, label: '返佣账号管理' },
         { key: '/settings/database', icon: <DatabaseOutlined />, label: '数据库管理' },
       ],

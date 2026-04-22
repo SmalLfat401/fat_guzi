@@ -102,14 +102,14 @@ export const guziProductApi = {
 
   // 阿里妈妈搜索商品（支持分页和排序）
   searchAlimama: async (keyword: string, pageNo: number = 1, pageSize: number = 20, sort: string = 'tk_rate_des'): Promise<ProductSearchResponse> => {
-    const response = await apiClient.get<ProductSearchResponse>('/guzi-products/search', { 
-      params: { 
-        keyword, 
+    const response = await apiClient.get<ProductSearchResponse>('/guzi-products/search', {
+      params: {
+        keyword,
         platforms: 'alimama',
         page_no: pageNo,
         page_size: pageSize,
         sort,
-      } 
+      }
     });
     return response.data;
   },

@@ -16,6 +16,7 @@ from app.api import (
     platform_configs_router,
     guzi_products_router,
     guzi_tags_router,
+    guzi_categories_router,
     weibo_crawler_task,
     llm_router,
     weibo_intel as weibo_intel_router,
@@ -117,6 +118,7 @@ app.include_router(guzi_tags_router, prefix="/api/v1", tags=["谷子标签管理
 app.include_router(h5_glossary_router, prefix="/api/v1", tags=["H5 术语百科"])
 app.include_router(h5_intel.router, prefix="/api/v1", tags=["H5 情报"])
 app.include_router(want_guzi_router, prefix="/api/v1", tags=["求谷管理"])
+app.include_router(guzi_categories_router, prefix="/api/v1", tags=["谷子分类管理"])
 
 
 @app.get("/")

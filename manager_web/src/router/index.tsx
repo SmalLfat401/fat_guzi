@@ -5,6 +5,7 @@ import Dashboard from '../pages/Dashboard';
 import CategoryList from '../pages/categories/CategoryList';
 import CommissionAccountSettings from '../pages/settings/CommissionAccountSettings';
 import GuziTagSettings from '../pages/settings/GuziTagSettings';
+import GuziCategorySettings from '../pages/settings/GuziCategorySettings';
 import WeiboPosts from '../pages/WeiboPosts';
 import GuziTermList from '../pages/slang/GuziTermList';
 import CoserTermList from '../pages/slang/CoserTermList';
@@ -97,6 +98,10 @@ const router = createBrowserRouter([
             {
               path: 'guzi-tags',
               element: <GuziTagSettings />,
+            },
+            {
+              path: 'guzi-categories',
+              element: <GuziCategorySettings />,
             },
             {
               path: 'commission-account',

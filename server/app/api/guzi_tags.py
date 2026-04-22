@@ -6,7 +6,7 @@ from fastapi import APIRouter, HTTPException, Query
 from typing import Optional, List
 from pydantic import BaseModel
 
-from app.models.guzi_tag import GuziTagCreate, GuziTagUpdate, GuziTagResponse, TagType
+from app.models.guzi_tag import GuziTagCreate, GuziTagUpdate, GuziTagResponse, TagType, IpCategory
 from app.database.guzi_tag_dao import guzi_tag_dao
 
 
@@ -41,6 +41,7 @@ async def create_tag(tag: GuziTagCreate):
     - **name**: 标签名称（必填），同类型下不可重复
     - **color**: 标签颜色（可选），如: #ff6b6b
     - **remark**: 备注说明（可选）
+    - **ip_category**: IP类别（仅对IP标签有效），animation=动漫，game=游戏，other=其他
     """
     existing = guzi_tag_dao.find_by_name_and_type(tag.name, tag.tag_type)
     if existing:
@@ -59,6 +60,7 @@ async def get_tags(
     is_active: Optional[bool] = Query(None, description="是否启用"),
     show_on_h5: Optional[bool] = Query(None, description="是否在H5端显示"),
     search: Optional[str] = Query(None, description="搜索标签名称"),
+    ip_category: Optional[IpCategory] = Query(None, description="IP类别筛选（仅对IP标签有效）"),
 ):
     """
     获取谷子标签列表
@@ -69,6 +71,7 @@ async def get_tags(
     - **is_active**: 筛选启用状态（管理端用）
     - **show_on_h5**: 筛选H5显示状态
     - **search**: 搜索标签名称
+    - **ip_category**: 筛选IP类别（animation=动漫，game=游戏，other=其他）
     """
     tags = guzi_tag_dao.find_all(
         skip=skip,
@@ -77,12 +80,14 @@ async def get_tags(
         is_active=is_active,
         show_on_h5=show_on_h5,
         search=search,
+        ip_category=ip_category,
     )
     total = guzi_tag_dao.count(
         tag_type=tag_type,
         is_active=is_active,
         show_on_h5=show_on_h5,
         search=search,
+        ip_category=ip_category,
     )
 
     page = skip // limit + 1 if limit > 0 else 1

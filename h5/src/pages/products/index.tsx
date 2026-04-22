@@ -15,8 +15,8 @@ import {
   SpinLoading,
   DotLoading,
 } from 'antd-mobile';
-import { fetchProducts, fetchTags, fetchAllTags } from '@/api';
-import type { GuziProductH5, GuziTag } from '@/types';
+import { fetchProducts, fetchCategories, fetchTags } from '@/api';
+import type { GuziProductH5, GuziCategoryWithSubs, GuziTag } from '@/types';
 
 import './index.scss';
 
@@ -28,34 +28,56 @@ const ProductsPage: React.FC = () => {
   const [searchValue, setSearchValue] = useState('');
   const [activeTab, setActiveTab] = useState('all');
   const [ipTags, setIpTags] = useState<GuziTag[]>([]);
-  const [categoryTags, setCategoryTags] = useState<GuziTag[]>([]);
+  const [categories, setCategories] = useState<GuziCategoryWithSubs[]>([]);
+  // 从 ipTags 构建 IP标签 ID→名称映射
+  const ipTagIdToName = React.useMemo(
+    () => new Map(ipTags.map(t => [t._id, t.name])),
+    [ipTags]
+  );
+  // 从 categories 构建 sub_category ID→名称映射
+  const subCatIdToName = React.useMemo(() => {
+    const map = new Map<string, string>();
+    for (const cat of categories) {
+      for (const sub of cat.sub_categories || []) {
+        map.set(sub._id, sub.name);
+      }
+    }
+    return map;
+  }, [categories]);
+
+  // 筛选状态
   const [selectedIpTag, setSelectedIpTag] = useState<string | null>(null);
-  const [selectedCategoryTag, setSelectedCategoryTag] = useState<string | null>(null);
-  // 标签 ID→名称 映射（从 fetchAllTags 一次获取全部标签建立）
-  const [tagIdToName, setTagIdToName] = useState<Map<string, string>>(new Map());
+  // 级联选择：一级分类ID + 二级分类ID
+  const [cascadeValue, setCascadeValue] = useState<[string, string] | null>(null);
+
+  // 计算当前选中的二级分类ID（用于API筛选）
+  const selectedSubCatId = cascadeValue?.[1] || null;
 
   useEffect(() => {
     loadInitialData();
   }, []);
 
-  // 初始化：加载全部标签（建立映射）+ 筛选器分类标签
+  // 初始化：加载分类数据 + IP标签 + 商品
   const loadInitialData = async () => {
     setLoading(true);
     try {
-      // 1. 获取全部标签并建立 ID→名称 映射
-      const allTagMap = await fetchAllTags();
-      setTagIdToName(allTagMap);
-
-      // 2. 分别获取 IP 标签和类别标签（用于筛选器，is_active=true）
-      const [ipTagsData, categoryTagsData] = await Promise.all([
+      // 并行获取：一级分类（含二级）和 IP 标签
+      const [categoriesData, ipTagsData] = await Promise.all([
+        fetchCategories(true),
         fetchTags('ip'),
-        fetchTags('category'),
       ]);
+      setCategories(categoriesData);
       setIpTags(ipTagsData);
-      setCategoryTags(categoryTagsData);
 
-      // 3. 加载商品（使用标签映射填充 tagNames）
-      await reloadProducts(allTagMap);
+      // 构建映射后加载商品
+      const ipMap = new Map(ipTagsData.map((t: GuziTag) => [t._id, t.name]));
+      const subMap = new Map<string, string>();
+      for (const cat of categoriesData) {
+        for (const sub of cat.sub_categories || []) {
+          subMap.set(sub._id, sub.name);
+        }
+      }
+      await reloadProducts(subMap, ipMap);
     } catch (error) {
       console.error('Failed to load initial data:', error);
     } finally {
@@ -64,15 +86,20 @@ const ProductsPage: React.FC = () => {
   };
 
   // 根据当前筛选条件加载商品列表
-  const reloadProducts = async (tagMap?: Map<string, string>) => {
-    const map = tagMap || tagIdToName;
+  const reloadProducts = async (
+    subMap?: Map<string, string>,
+    ipMap?: Map<string, string>
+  ) => {
+    const subCatMap = subMap || subCatIdToName;
+    const ipMapData = ipMap || ipTagIdToName;
     const productsData = await fetchProducts(
       {
         is_active: true,
         ipTag: selectedIpTag || undefined,
-        categoryTag: selectedCategoryTag || undefined,
+        categoryTag: selectedSubCatId || undefined,
       },
-      map
+      subCatMap,
+      ipMapData
     );
     setProducts(productsData);
     applyFilters(productsData, activeTab, searchValue);
@@ -81,7 +108,7 @@ const ProductsPage: React.FC = () => {
   // 重新加载数据（当标签筛选变化时）
   useEffect(() => {
     reloadProducts();
-  }, [selectedIpTag, selectedCategoryTag]);
+  }, [selectedIpTag, selectedSubCatId]);
 
   // 应用筛选逻辑（仅用于前端筛选）
   const applyFilters = useCallback((
@@ -125,9 +152,9 @@ const ProductsPage: React.FC = () => {
     setSelectedIpTag(tagId);
   };
 
-  // 类别标签筛选
-  const handleCategoryTagFilter = (tagId: string | null) => {
-    setSelectedCategoryTag(tagId);
+  // 类别标签筛选（级联：返回 [一级ID, 二级ID] 或 null）
+  const handleCategoryTagFilter = (value: [string, string] | null) => {
+    setCascadeValue(value);
   };
 
   // 获取商品图片（支持多图）
@@ -255,24 +282,35 @@ const ProductsPage: React.FC = () => {
       >
         <Tabs.Tab title="全部" key="all">
           <div className="products-content-wrapper">
-            {/* 左侧品类分类 */}
-            {!loading && categoryTags.length > 0 && (
+            {/* 左侧一二级级联分类侧边栏 */}
+            {!loading && categories.length > 0 && (
               <div className="category-sidebar">
                 <div
-                  className={`category-item ${selectedCategoryTag === null ? 'active' : ''}`}
+                  className={`category-item ${cascadeValue === null ? 'active' : ''}`}
                   onClick={() => handleCategoryTagFilter(null)}
                 >
                   全部
                 </div>
-                {categoryTags.map(tag => (
-                  <div
-                    key={tag._id}
-                    className={`category-item ${selectedCategoryTag === tag._id ? 'active' : ''}`}
-                    onClick={() => handleCategoryTagFilter(tag._id)}
-                  >
-                    {tag.name}
-                  </div>
-                ))}
+                {categories
+                  .filter(cat => cat.is_active !== false)
+                  .sort((a, b) => (a.order || 0) - (b.order || 0) || a.name.localeCompare(b.name))
+                  .map(cat => (
+                    <div key={cat._id} className="category-group">
+                      <div className="category-parent-name">{cat.name}</div>
+                      {(cat.sub_categories || [])
+                        .filter(sub => sub.is_active !== false)
+                        .sort((a, b) => (a.order || 0) - (b.order || 0) || a.name.localeCompare(b.name))
+                        .map(sub => (
+                          <div
+                            key={sub._id}
+                            className={`category-item sub-category-item ${cascadeValue?.[1] === sub._id ? 'active' : ''}`}
+                            onClick={() => handleCategoryTagFilter([cat._id, sub._id])}
+                          >
+                            {sub.name}
+                          </div>
+                        ))}
+                    </div>
+                  ))}
               </div>
             )}
             <div className="products-content">
@@ -294,24 +332,35 @@ const ProductsPage: React.FC = () => {
 
         <Tabs.Tab title={<>🔥 热门</>} key="hot">
           <div className="products-content-wrapper">
-            {/* 左侧品类分类 */}
-            {!loading && categoryTags.length > 0 && (
+            {/* 左侧一二级级联分类侧边栏 */}
+            {!loading && categories.length > 0 && (
               <div className="category-sidebar">
                 <div
-                  className={`category-item ${selectedCategoryTag === null ? 'active' : ''}`}
+                  className={`category-item ${cascadeValue === null ? 'active' : ''}`}
                   onClick={() => handleCategoryTagFilter(null)}
                 >
                   全部
                 </div>
-                {categoryTags.map(tag => (
-                  <div
-                    key={tag._id}
-                    className={`category-item ${selectedCategoryTag === tag._id ? 'active' : ''}`}
-                    onClick={() => handleCategoryTagFilter(tag._id)}
-                  >
-                    {tag.name}
-                  </div>
-                ))}
+                {categories
+                  .filter(cat => cat.is_active !== false)
+                  .sort((a, b) => (a.order || 0) - (b.order || 0) || a.name.localeCompare(b.name))
+                  .map(cat => (
+                    <div key={cat._id} className="category-group">
+                      <div className="category-parent-name">{cat.name}</div>
+                      {(cat.sub_categories || [])
+                        .filter(sub => sub.is_active !== false)
+                        .sort((a, b) => (a.order || 0) - (b.order || 0) || a.name.localeCompare(b.name))
+                        .map(sub => (
+                          <div
+                            key={sub._id}
+                            className={`category-item sub-category-item ${cascadeValue?.[1] === sub._id ? 'active' : ''}`}
+                            onClick={() => handleCategoryTagFilter([cat._id, sub._id])}
+                          >
+                            {sub.name}
+                          </div>
+                        ))}
+                    </div>
+                  ))}
               </div>
             )}
             <div className="products-content">

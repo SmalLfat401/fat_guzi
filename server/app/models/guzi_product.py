@@ -65,6 +65,10 @@ class ProductSearchItem(BaseModel):
     category_name: Optional[str] = Field(default=None, description="商品类目名称")
     level_one_category_id: Optional[int] = Field(default=None, description="一级类目ID")
     level_one_category_name: Optional[str] = Field(default=None, description="一级类目名称")
+    # 搜索匹配信息（当使用二级分类搜索时返回）
+    match_score: int = Field(default=0, description="匹配度分数：命中的 aliases 次数 × match_weight − 命中的 exclude 次数 × 10")
+    match_detail: Optional[str] = Field(default=None, description="匹配说明，如：命中别名 [吧唧, 马口铁] +1×90，命中排除词 [卡套] -10")
+    search_keyword: Optional[str] = Field(default=None, description="实际使用的搜索关键词（IP名称 + aliases 拼接）")
 
 
 class ProductSearchResponse(BaseModel):

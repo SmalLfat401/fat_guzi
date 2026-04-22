@@ -81,6 +81,10 @@ async def list_intel_events(
         end_date=end_date,
         category=category,
     )
+    # 日历视图不需要精确总数（前端只看 items，total 仅用于分页指示）
+    # count_documents 在数据量大时开销显著，直接用返回的 limit 作为上限
+    if mode == "calendar":
+        total = min(total, limit)
     return {
         "items": [_intel_to_event(i) for i in intel_list],
         "total": total,

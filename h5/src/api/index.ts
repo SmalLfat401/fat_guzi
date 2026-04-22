@@ -2,7 +2,7 @@
  * API 服务层
  * 封装所有后端接口调用
  */
-import axios, { AxiosInstance } from 'axios';
+import { apiClient } from './config';
 import type {
   GuziProductH5,
   ProductFilter,
@@ -12,6 +12,7 @@ import type {
   H5GlossaryResponse,
   H5GlossaryStats,
   IntelEventDetail,
+  GuziCategoryWithSubs,
 } from '@/types';
 
 // 后端原始数据类型（用于转换）
@@ -36,42 +37,16 @@ interface BackendGuziProduct {
   updated_at?: string;
 }
 
-// 创建 axios 实例
-const apiClient: AxiosInstance = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8879/api/v1',
-  // 实际请求路径: baseURL + '/guzi-products' = 'http://localhost:8879/api/v1/guzi-products'
-  // 后端 FastAPI 所有路由已在 main.py 中通过 include_router(prefix="/api/v1") 注册
-  timeout: 15000,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-});
-
-// 请求拦截器
-apiClient.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+// 从一二级分类数据构建 sub_category ID → 名称 的映射
+function buildSubCatIdToName(categories: GuziCategoryWithSubs[] = []): Map<string, string> {
+  const map = new Map<string, string>();
+  for (const cat of categories) {
+    for (const sub of cat.sub_categories || []) {
+      map.set(sub._id, sub.name);
     }
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
   }
-);
-
-// 响应拦截器
-apiClient.interceptors.response.use(
-  (response) => {
-    return response.data;
-  },
-  (error) => {
-    const message = error.response?.data?.detail || error.response?.data?.message || '网络请求失败';
-    console.error('API Error:', message);
-    return Promise.reject(new Error(message));
-  }
-);
+  return map;
+}
 
 // ──────────────────────────────────────────────
 // 数据转换函数：后端 GuziProduct → H5 GuziProductH5
@@ -79,7 +54,8 @@ apiClient.interceptors.response.use(
 
 function transformProduct(
   product: BackendGuziProduct,
-  tagIdToName: Map<string, string> = new Map()
+  ipTagIdToName: Map<string, string> = new Map(),
+  subCatIdToName: Map<string, string> = new Map()
 ): GuziProductH5 {
   // 获取最低价平台信息（用于商品主信息展示）
   const platforms = product.platforms || [];
@@ -97,14 +73,14 @@ function transformProduct(
   // 原始标签 ID 数组
   const ipTagIds = product.ip_tags || [];
   const categoryTagIds = product.category_tags || [];
-  const allTagIds = [...ipTagIds, ...categoryTagIds];
 
-  // 将标签 ID 映射为标签名称
+  // IP标签 ID → 名称
   const ipTagNames: string[] = ipTagIds
-    .map((id) => tagIdToName.get(id))
+    .map((id) => ipTagIdToName.get(id))
     .filter(Boolean) as string[];
+  // 类别标签：商品里存的是 sub_category ID，通过一二级分类数据解析名称
   const categoryTagNames: string[] = categoryTagIds
-    .map((id) => tagIdToName.get(id))
+    .map((id) => subCatIdToName.get(id))
     .filter(Boolean) as string[];
   const allTagNames = [...ipTagNames, ...categoryTagNames];
 
@@ -176,7 +152,11 @@ function transformProduct(
 /**
  * 获取商品列表
  */
-export async function fetchProducts(filter?: ProductFilter, tagIdToName?: Map<string, string>): Promise<GuziProductH5[]> {
+export async function fetchProducts(
+  filter?: ProductFilter,
+  subCatIdToName?: Map<string, string>,
+  ipTagIdToName?: Map<string, string>
+): Promise<GuziProductH5[]> {
   try {
     const params: Record<string, any> = {
       skip: 0,
@@ -196,12 +176,15 @@ export async function fetchProducts(filter?: ProductFilter, tagIdToName?: Map<st
       params.category_tag = filter.categoryTag;
     }
 
-    const response = await apiClient.get<any>('/guzi-products', { params });
-    const rawData = response as any;
-    const products = Array.isArray(rawData) ? rawData : (rawData.items || []);
+    const data: any = await apiClient.get('/guzi-products', { params });
+    const products = Array.isArray(data) ? data : (data.items || []);
 
     return (products as BackendGuziProduct[]).map((p) =>
-      transformProduct(p, tagIdToName || new Map())
+      transformProduct(
+        p,
+        ipTagIdToName || new Map(),
+        subCatIdToName || new Map()
+      )
     );
   } catch (error) {
     console.error('获取商品列表失败:', error);
@@ -212,12 +195,17 @@ export async function fetchProducts(filter?: ProductFilter, tagIdToName?: Map<st
 /**
  * 获取商品详情
  */
-export async function fetchProductDetail(id: string, tagIdToName?: Map<string, string>): Promise<GuziProductH5 | null> {
+export async function fetchProductDetail(
+  id: string,
+  subCatIdToName?: Map<string, string>,
+  ipTagIdToName?: Map<string, string>
+): Promise<GuziProductH5 | null> {
   try {
-    const response = await apiClient.get<BackendGuziProduct>(`/guzi-products/${id}`);
+    const response: any = await apiClient.get(`/guzi-products/${id}`);
     return transformProduct(
-      response as unknown as BackendGuziProduct,
-      tagIdToName || new Map()
+      response as BackendGuziProduct,
+      ipTagIdToName || new Map(),
+      subCatIdToName || new Map()
     );
   } catch (error) {
     console.error('获取商品详情失败:', error);
@@ -241,12 +229,11 @@ export async function fetchTags(tagType?: 'ip' | 'category'): Promise<GuziTag[]>
       params.show_on_h5 = true; // H5 端只显示管理员设置为"在H5显示"的标签
     }
 
-    const response = await apiClient.get<any>('/guzi-tags', { params });
-    const rawData = response as any;
-    const items = Array.isArray(rawData)
-      ? rawData
-      : Array.isArray(rawData.items)
-      ? rawData.items
+    const response: any = await apiClient.get('/guzi-tags', { params });
+    const items = Array.isArray(response)
+      ? response
+      : Array.isArray(response?.items)
+      ? response.items
       : [];
 
     return items.map((tag: any) => ({
@@ -263,16 +250,20 @@ export async function fetchTags(tagType?: 'ip' | 'category'): Promise<GuziTag[]>
 }
 
 /**
- * 获取全部标签并建立 ID→名称 映射表
- * 用于在商品转换时将标签 ID 替换为标签名称
+ * 获取一二级分类结构（用于 H5 侧边栏级联筛选）
  */
-export async function fetchAllTags(): Promise<Map<string, string>> {
-  const allTags = await fetchTags();
-  const map = new Map<string, string>();
-  for (const tag of allTags) {
-    map.set(tag._id, tag.name);
+export async function fetchCategories(isActive = true): Promise<any[]> {
+  try {
+    const params: Record<string, any> = { limit: 200 };
+    if (isActive !== undefined) {
+      params.is_active = isActive;
+    }
+    const response: any = await apiClient.get('/guzi-categories/with-subs', { params });
+    return response.items || response || [];
+  } catch (error) {
+    console.error('获取分类列表失败:', error);
+    return [];
   }
-  return map;
 }
 
 /**
@@ -281,20 +272,19 @@ export async function fetchAllTags(): Promise<Map<string, string>> {
 export async function fetchHomeData(): Promise<HomeData> {
   try {
     // 并行请求多个接口
-      const [productsResponse, eventsResponse, releasesResponse] = await Promise.allSettled([
-      apiClient.get<BackendGuziProduct[]>('/guzi-products', {
+    const [productsResponse, ,] = await Promise.allSettled([
+      apiClient.get('/guzi-products', {
         params: { skip: 0, limit: 10, is_active: true }
       }),
       apiClient.get('/calendar/events', { params: { limit: 5 } }).catch(() => null),
       apiClient.get('/releases', { params: { limit: 5 } }).catch(() => null),
     ]);
 
-    // 处理商品数据
     let products: GuziProductH5[] = [];
     if (productsResponse.status === 'fulfilled') {
-      const rawData = productsResponse.value as any;
-      const productList = Array.isArray(rawData) ? rawData : (rawData.items || []);
-      products = productList.map(transformProduct);
+      const productList: any = productsResponse.value;
+      const list = Array.isArray(productList) ? productList : (productList.items || []);
+      products = (list as BackendGuziProduct[]).map((p) => transformProduct(p, new Map()));
     }
 
     // 如果后端数据为空，返回空数据而不是模拟数据
@@ -333,11 +323,10 @@ export async function fetchCalendarEvents(params: {
   limit?: number;
 } = {}): Promise<{ items: any[]; total: number }> {
   try {
-    // apiClient 拦截器已返回 response.data，直接访问
-    const intelRes = await apiClient.get('/h5/intel/events', { params }).catch(() => null) as { items: any[]; total: number } | null;
+    const response: any = await apiClient.get('/h5/intel/events', { params });
     return {
-      items: intelRes?.items || [],
-      total: intelRes?.total || 0,
+      items: response?.items || [],
+      total: response?.total || 0,
     };
   } catch (error) {
     console.error('获取活动日历失败:', error);
@@ -350,9 +339,8 @@ export async function fetchCalendarEvents(params: {
  */
 export async function fetchNotices() {
   try {
-    const response = await apiClient.get<any>('/notices');
-    const rawData = response as any;
-    return Array.isArray(rawData) ? rawData : (rawData.items || rawData || []);
+    const data: any = await apiClient.get('/notices');
+    return Array.isArray(data) ? data : (data.items || data || []);
   } catch (error) {
     console.error('获取公告失败:', error);
     return [];
@@ -365,12 +353,11 @@ export async function fetchNotices() {
  */
 export async function generateTkl(productId: string, platformIndex: number): Promise<PlatformInfo | null> {
   try {
-    const response = await apiClient.post<any>(
+    const p: any = await apiClient.post(
       `/guzi-products/generate-tkl/${productId}`,
       null,
       { params: { platform_index: platformIndex } }
     );
-    const p = response as any;
     return {
       platformId: p.platform_id,
       platformName: p.platform_name || p.platform_id,
@@ -490,7 +477,7 @@ export default {
   fetchProducts,
   fetchProductDetail,
   fetchTags,
-  fetchAllTags,
+  fetchCategories,
   fetchNotices,
   generateTkl,
   fetchGlossaryTerms,

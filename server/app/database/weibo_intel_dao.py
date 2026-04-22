@@ -87,12 +87,14 @@ class WeiboIntelDAO:
                 self.collection.create_index("event_start_date")
             if "event_end_date_1" not in existing:
                 self.collection.create_index("event_end_date")
-            # 复合索引：优化 H5 日历查询
-            if "status_1_is_published_1_event_start_date_1" not in existing:
+            # 复合索引：优化 H5 日历查询（按选择性从高到低排：is_latest > status > is_published > category > event_start_date）
+            if "is_latest_1_status_1_is_published_1_category_1_event_start_date_1" not in existing:
                 self.collection.create_index([
+                    ("is_latest", ASCENDING),
                     ("status", ASCENDING),
                     ("is_published", ASCENDING),
-                    ("event_start_date", ASCENDING)
+                    ("category", ASCENDING),
+                    ("event_start_date", ASCENDING),
                 ])
             if "alert_type_1" not in existing:
                 self.collection.create_index("alert_type")
@@ -518,7 +520,7 @@ class WeiboIntelDAO:
         category: Optional[str] = None,
     ) -> Tuple[List[WeiboIntel], int]:
         """
-        查询已发布到 H5 的情报（status=approved 且 is_published=true）
+        查询已发布到 H5 的情报（status=approved 且 is_published=true 且 is_latest=true）
 
         支持日期范围过滤和类别过滤。
         - 日历视图: 传入 start_date + end_date 获取当月所有事件，用于显示圆点
@@ -531,15 +533,14 @@ class WeiboIntelDAO:
         query: Dict[str, Any] = {
             "status": IntelStatus.APPROVED.value,
             "is_published": True,
+            "is_latest": True,
         }
         if category:
             query["category"] = category
 
         # 日期范围查询：活动开始时间必须在查询范围内
         if start_date and end_date:
-            # 核心：event_start_date 在 [start_date, end_date] 区间内
             query["event_start_date"] = {"$gte": start_date, "$lte": end_date}
-            # 额外：event_end_date >= start_date（多日活动）或 event_end_date 不存在（单日）
             query["$or"] = [
                 {"event_end_date": {"$gte": start_date}},
                 {"event_end_date": {"$exists": False}},
@@ -549,11 +550,37 @@ class WeiboIntelDAO:
         elif end_date:
             query["event_start_date"] = {"$lte": end_date}
 
+        # 只返回 API 需要的字段，避免传输和解析大字段（change_history、source_posts、ai_raw_response）
+        projection = {
+            "_id": 0,
+            "id": 1,
+            "category": 1,
+            "title": 1,
+            "event_start_date": 1,
+            "event_end_date": 1,
+            "event_start_time": 1,
+            "event_location": 1,
+            "event_city": 1,
+            "price_info": 1,
+            "cover_image": 1,
+            "is_published": 1,
+            "status": 1,
+            "created_at": 1,
+            "updated_at": 1,
+            "source_post_mid": 1,
+            "author_uid": 1,
+            "author_nickname": 1,
+        }
+
         total = self.collection.count_documents(query)
-        cursor = self.collection.find(query).skip(skip).limit(limit).sort("event_start_date", ASCENDING)
+        cursor = (
+            self.collection.find(query, projection)
+            .skip(skip)
+            .limit(limit)
+            .sort("event_start_date", ASCENDING)
+        )
         results = []
         for doc in cursor:
-            doc.pop("_id", None)
             results.append(WeiboIntel(**doc))
         return results, total
 

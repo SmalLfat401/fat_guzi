@@ -88,6 +88,23 @@ export interface GuziTag {
   isActive?: boolean;
 }
 
+// 一级分类（含二级分类，用于 H5 侧边栏级联展示）
+export interface GuziSubCategory {
+  _id: string;
+  name: string;
+  description?: string;
+  order?: number;
+  is_active?: boolean;
+}
+
+export interface GuziCategoryWithSubs {
+  _id: string;
+  name: string;
+  order?: number;
+  is_active?: boolean;
+  sub_categories?: GuziSubCategory[];
+}
+
 /**
  * 活动日历类型
  */

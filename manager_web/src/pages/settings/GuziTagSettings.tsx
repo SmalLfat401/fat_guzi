@@ -5,7 +5,8 @@ import {
   SearchOutlined, InfoCircleOutlined,
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
-import type { GuziTag, GuziTagCreate, GuziTagUpdate, TagType } from '../../types/guziTag';
+import type { GuziTag, GuziTagCreate, GuziTagUpdate, TagType, IpCategory } from '../../types/guziTag';
+import { IP_CATEGORY_LABELS, IP_CATEGORY_COLORS } from '../../types/guziTag';
 import { guziTagApi } from '../../api/guziTag';
 import { Table, Button, Switch, Tooltip, Form, Input, Select } from 'antd';
 import '../../styles/global.scss';
@@ -83,6 +84,7 @@ const TagManager: React.FC<{
   const [editingTag, setEditingTag] = useState<GuziTag | null>(null);
   const [isActiveFilter, setIsActiveFilter] = useState<boolean | undefined>(undefined);
   const [searchText, setSearchText] = useState('');
+  const [ipCategoryFilter, setIpCategoryFilter] = useState<IpCategory | undefined>(undefined);
   const [pageInfo, setPageInfo] = useState({ page: 1, pageSize: 20 });
   const [form] = Form.useForm();
 
@@ -100,6 +102,9 @@ const TagManager: React.FC<{
       if (searchText) {
         params.search = searchText;
       }
+      if (ipCategoryFilter !== undefined) {
+        params.ip_category = ipCategoryFilter;
+      }
       const data = await guziTagApi.getTags(params);
       setTags(data.items);
       setTotal(data.total);
@@ -112,7 +117,7 @@ const TagManager: React.FC<{
 
   useEffect(() => {
     fetchTags();
-  }, [isActiveFilter, searchText, pageInfo]);
+  }, [isActiveFilter, searchText, ipCategoryFilter, pageInfo]);
 
   // 不再需要 formFields 受控字段，Form 实例持久化即可
 
@@ -135,6 +140,7 @@ const TagManager: React.FC<{
         remark: editingTag.remark ?? undefined,
         is_active: editingTag.is_active,
         show_on_h5: editingTag.show_on_h5,
+        ip_category: editingTag.ip_category ?? undefined,
       });
     }
     if (!open) {
@@ -196,6 +202,21 @@ const TagManager: React.FC<{
         </Space>
       ),
     },
+    // 仅IP标签显示类别列
+    ...(tagType === 'ip' ? [{
+      title: '类别',
+      dataIndex: 'ip_category',
+      key: 'ip_category',
+      width: 100,
+      render: (ipCategory: IpCategory | undefined) =>
+        ipCategory ? (
+          <Tag color={IP_CATEGORY_COLORS[ipCategory]}>
+            {IP_CATEGORY_LABELS[ipCategory]}
+          </Tag>
+        ) : (
+          <span style={{ color: '#9ca3af', fontSize: 12 }}>-</span>
+        ),
+    }] : []),
     {
       title: '颜色',
       dataIndex: 'color',
@@ -461,6 +482,34 @@ const TagManager: React.FC<{
                   { label: '已禁用', value: false },
                 ]}
               />
+              {tagType === 'ip' && (
+                <Select
+                  placeholder="类别筛选"
+                  allowClear
+                  style={{ width: 110 }}
+                  size="small"
+                  value={ipCategoryFilter}
+                  onChange={(val) => { setIpCategoryFilter(val); setPageInfo(p => ({ ...p, page: 1 })); }}
+                  options={[
+                    { label: '全部', value: undefined },
+                    { label: '动漫', value: 'animation', color: '#1890ff' },
+                    { label: '游戏', value: 'game', color: '#722ed1' },
+                    { label: '其他', value: 'other', color: '#faad14' },
+                  ]}
+                  optionRender={(option) => (
+                    <Space>
+                      <span style={{
+                        display: 'inline-block',
+                        width: 8,
+                        height: 8,
+                        borderRadius: 2,
+                        backgroundColor: option.label === '动漫' ? '#1890ff' : option.label === '游戏' ? '#722ed1' : option.label === '其他' ? '#faad14' : '#9ca3af',
+                      }} />
+                      {option.label}
+                    </Space>
+                  )}
+                />
+              )}
               <Input
                 placeholder="搜索标签名称"
                 prefix={<SearchOutlined />}
@@ -533,6 +582,34 @@ const TagManager: React.FC<{
               options={colorOptions}
             />
           </Form.Item>
+          {tagType === 'ip' && (
+            <Form.Item name="ip_category" label="IP类别">
+              <Select
+                placeholder="选择IP类别（可选）"
+                allowClear
+                options={[
+                  { label: '动漫', value: 'animation', color: '#1890ff' },
+                  { label: '游戏', value: 'game', color: '#722ed1' },
+                  { label: '其他', value: 'other', color: '#faad14' },
+                ]}
+                optionRender={(option) => {
+                  const opt = option as unknown as { label?: React.ReactNode; value: string; color?: string };
+                  return (
+                    <Space>
+                      <span style={{
+                        display: 'inline-block',
+                        width: 10,
+                        height: 10,
+                        borderRadius: 2,
+                        backgroundColor: opt.color || '#9ca3af',
+                      }} />
+                      {opt.label}
+                    </Space>
+                  );
+                }}
+              />
+            </Form.Item>
+          )}
           <Form.Item name="remark" label="备注说明">
             <Input.TextArea
               placeholder="可选，如：蓝色监狱是一部体育类动漫"

@@ -128,6 +128,12 @@ export interface ProductSearchItem {
   category_name?: string;
   level_one_category_id?: number;
   level_one_category_name?: string;
+  /** 匹配度分数：命中 aliases 次数 × match_weight − 命中 exclude 次数 × 10 */
+  match_score?: number;
+  /** 匹配说明 */
+  match_detail?: string;
+  /** 实际使用的搜索关键词 */
+  search_keyword?: string;
 }
 
 // 单平台搜索结果（原始API返回格式）

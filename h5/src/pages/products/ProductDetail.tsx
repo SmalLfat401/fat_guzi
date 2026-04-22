@@ -14,8 +14,8 @@ import {
   ActionSheet,
 } from 'antd-mobile';
 import { Share, Star, Clock, Fire, Wallet, Package, Store, Truck, CreditCard } from '@/components/icons';
-import { fetchProductDetail, fetchAllTags, generateTkl } from '@/api';
-import type { GuziProductH5 } from '@/types';
+import { fetchProductDetail, fetchCategories, fetchTags, generateTkl } from '@/api';
+import type { GuziProductH5, GuziCategoryWithSubs, GuziTag } from '@/types';
 import dayjs from 'dayjs';
 import './ProductDetail.scss';
 
@@ -51,12 +51,24 @@ const ProductDetailPage: React.FC = () => {
   const [generatingTkl, setGeneratingTkl] = useState(false);
   const [selectedPlatformIndex, setSelectedPlatformIndex] = useState(0);
 
-  // 初始化：加载标签映射 + 商品详情
+  // 初始化：加载分类+IP标签映射 + 商品详情
   const loadInitialData = async () => {
     try {
-      const tagMap = await fetchAllTags();
+      const [categoriesData, ipTagsData] = await Promise.all([
+        fetchCategories(true),
+        fetchTags('ip'),
+      ]);
+
+      const subMap = new Map<string, string>();
+      for (const cat of categoriesData) {
+        for (const sub of cat.sub_categories || []) {
+          subMap.set(sub._id, sub.name);
+        }
+      }
+      const ipMap = new Map(ipTagsData.map((t: GuziTag) => [t._id, t.name]));
+
       if (id) {
-        const data = await fetchProductDetail(id, tagMap);
+        const data = await fetchProductDetail(id, subMap, ipMap);
         if (data) {
           setProduct(data);
           setIsFavorited(getFavorites().includes(id));

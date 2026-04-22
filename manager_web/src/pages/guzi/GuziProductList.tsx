@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { message, Modal, Space, Tag, Input, Button, Dropdown, Select, Tooltip, Image, Checkbox } from 'antd';
+import { message, Modal, Space, Tag, Input, Button, Dropdown, Select, Tooltip, Image, Checkbox, Cascader } from 'antd';
 import type { MenuProps } from 'antd';
 import {
   CloudDownloadOutlined,
@@ -15,10 +15,14 @@ import {
   SearchOutlined,
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
+// CascaderValueType
+type CascaderValueType = any;
 import type { GuziProduct, ProductSearchItem } from '../../types/guziProduct';
-import type { GuziTag } from '../../types/guziTag';
+import type { GuziTag, IpCategory } from '../../types/guziTag';
+import type { GuziCategoryWithSubs } from '../../types/guziCategory';
 import { guziProductApi } from '../../api/guziProduct';
 import { guziTagApi } from '../../api/guziTag';
+import { guziCategoryApi } from '../../api/guziCategory';
 import { Table, Switch, Form, Spin, Drawer, Badge } from 'antd';
 import dayjs from 'dayjs';
 import 'dayjs/locale/zh-cn';
@@ -130,6 +134,30 @@ const mockSearchResults: ProductSearchItem[] = [
 // 模拟已保存的商品数据（支持多平台）
 const mockProducts: GuziProduct[] = [];
 
+/**
+ * 组装最终搜索词：IP标签名 + 类别标签名 + 用户关键词
+ */
+function _assembleKeyword(
+  keyword: string,
+  ipTagId: string | undefined,
+  categoryTagId: string | undefined,
+  ipTags: { _id: string; name: string }[],
+  categoryTags: { _id: string; name: string }[],
+): string {
+  const parts: string[] = [];
+  if (ipTagId) {
+    const tag = ipTags.find(t => t._id === ipTagId);
+    if (tag) parts.push(tag.name);
+  }
+  if (categoryTagId) {
+    const tag = categoryTags.find(t => t._id === categoryTagId);
+    if (tag) parts.push(tag.name);
+  }
+  const trimmed = keyword.trim();
+  if (trimmed) parts.push(trimmed);
+  return parts.join(' ');
+}
+
 export default function GuziProductList() {
   const [products, setProducts] = useState<GuziProduct[]>([]);
   const [loading, setLoading] = useState(false);
@@ -154,8 +182,16 @@ export default function GuziProductList() {
   });
   // 排序状态
   const [searchSort, setSearchSort] = useState('tk_rate_des');
-  // 跟踪已添加的商品标题（用于在列表中标记）
-  const [addedProductTitles, setAddedProductTitles] = useState<Set<string>>(new Set());
+  // 跟踪已添加的商品 platform_product_id（用于在列表中标记）
+  const [addedProductIds, setAddedProductIds] = useState<Set<string>>(new Set());
+
+  // 保存最近一次搜索的上下文，用于分页/排序时复用同一接口
+  const [lastSearchCtx, setLastSearchCtx] = useState<{
+    mode: 'cascade' | 'keyword';
+    subCategoryId?: string;
+    ipTagId?: string;
+    keyword?: string;
+  } | null>(null);
   const [filterActive, setFilterActive] = useState<boolean | undefined>(undefined);
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
 
@@ -164,10 +200,25 @@ export default function GuziProductList() {
   const [categoryTags, setCategoryTags] = useState<GuziTag[]>([]);
   const [selectedIpTag, setSelectedIpTag] = useState<string | undefined>(undefined);
   const [selectedCategoryTag, setSelectedCategoryTag] = useState<string | undefined>(undefined);
+  // 列表页级联筛选：一级分类 → 二级分类
+  const [listCascadeValue, setListCascadeValue] = useState<CascaderValueType | undefined>(undefined);
 
-  // 搜索 Modal 专用的标签/关键词状态
+  // 分类结构数据（用于二级分类标签展示）
+  const [categoriesWithSubs, setCategoriesWithSubs] = useState<GuziCategoryWithSubs[]>([]);
+
+  // 搜索 Modal 专用的 IP 标签列表（受 IP 类别筛选影响）
+  const [searchModalIpTags, setSearchModalIpTags] = useState<GuziTag[]>([]);
+
+  // 搜索 Modal 专用的筛选状态
   const [searchIpTag, setSearchIpTag] = useState<string | undefined>(undefined);
   const [searchCategoryTag, setSearchCategoryTag] = useState<string | undefined>(undefined);
+  const [searchIpCategory, setSearchIpCategory] = useState<IpCategory | undefined>(undefined);
+  // 搜索模式
+  const [searchMode, setSearchMode] = useState<'cascade' | 'keyword'>('cascade');
+  // 级联选择：IP标签 → 二级分类
+  const [cascadeValue, setCascadeValue] = useState<CascaderValueType | undefined>(undefined);
+  // 编辑弹窗级联筛选：一级分类 → 二级分类
+  const [editCascadeValue, setEditCascadeValue] = useState<CascaderValueType | undefined>(undefined);
 
   // 编辑相关状态
   const [editModalVisible, setEditModalVisible] = useState(false);
@@ -252,54 +303,169 @@ export default function GuziProductList() {
         guziTagApi.getTags({ tag_type: 'category', is_active: true, limit: 100 }),
       ]);
       setIpTags(ipData.items);
+      setSearchModalIpTags(ipData.items);
       setCategoryTags(categoryData.items);
     } catch (error) {
       console.error('加载标签失败:', error);
     }
   };
 
+  // 获取分类结构（一级+二级）
+  const fetchCategories = async () => {
+    try {
+      const data = await guziCategoryApi.getCategoriesWithSubs();
+      setCategoriesWithSubs(data.items);
+    } catch (error) {
+      console.error('加载分类结构失败:', error);
+    }
+  };
+
+  // 监听 IP 类别筛选变化，过滤搜索弹窗中的 IP 标签下拉选项
+  useEffect(() => {
+    if (searchIpCategory) {
+      setSearchModalIpTags(ipTags.filter(t => t.ip_category === searchIpCategory));
+    } else {
+      setSearchModalIpTags(ipTags);
+    }
+    setSearchIpTag(undefined);
+  }, [searchIpCategory]);
+
   useEffect(() => {
     fetchTags();
+    fetchCategories();
   }, []);
 
   useEffect(() => {
     fetchProducts();
   }, [pagination.current, pagination.pageSize, filterActive, selectedIpTag, selectedCategoryTag]);
 
+  /**
+   * 计算单个搜索结果与搜索条件的匹配度（前端子集）
+   * - IP名匹配 → 40分
+   * - 类别别名/搜索词匹配 → 40分
+   * - 用户关键词匹配 → 20分
+   * 最高100分
+   */
+  function _calcMatchScore(
+    title: string,
+    ipName: string | undefined,
+    aliases: string[],
+    userKeyword: string,
+  ): { score: number; details: string[] } {
+    const lowerTitle = title.toLowerCase();
+    const details: string[] = [];
+
+    let score = 0;
+    if (ipName && lowerTitle.includes(ipName.toLowerCase())) {
+      score += 40;
+      details.push(`IP「${ipName}」`);
+    }
+    for (const alias of aliases) {
+      if (lowerTitle.includes(alias.toLowerCase())) {
+        score += 40;
+        details.push(`别名「${alias}」`);
+        break;
+      }
+    }
+    if (userKeyword.trim() && lowerTitle.includes(userKeyword.trim().toLowerCase())) {
+      score += 20;
+      details.push(`关键词「${userKeyword.trim()}」`);
+    }
+
+    return { score, details };
+  }
+
   // 搜索谷子商品
   const handleSearch = async (keyword: string) => {
-    const trimmedKeyword = keyword.trim();
-
-    // 组装最终搜索词：IP标签名 + 类别标签名 + 用户关键词
-    const parts: string[] = [];
-    if (searchIpTag) {
-      const tag = ipTags.find(t => t._id === searchIpTag);
-      if (tag) parts.push(tag.name);
-    }
-    if (searchCategoryTag) {
-      const tag = categoryTags.find(t => t._id === searchCategoryTag);
-      if (tag) parts.push(tag.name);
-    }
-    if (trimmedKeyword) {
-      parts.push(trimmedKeyword);
-    }
-
-    const finalKeyword = parts.join(' ');
-
-    if (!finalKeyword) {
-      message.warning('请至少选择一个标签或输入关键词');
-      return;
-    }
-
     setSearchLoading(true);
     try {
-      // 从第1页开始搜索，重置分页
       setSearchPagination(prev => ({ ...prev, current: 1 }));
-      const response = await guziProductApi.searchAlimama(finalKeyword, 1, searchPagination.pageSize, searchSort);
-      setSearchResults(response.items);
-      setSearchPagination(prev => ({ ...prev, total: response.total }));
+
+      if (searchMode === 'cascade' && cascadeValue && cascadeValue.length >= 2) {
+        // 级联模式：IP标签名 + 二级分类别名 + 关键词
+        // cascadeValue[0] = 一级分类ID，cascadeValue[1] = 二级分类ID
+        const subCatId = cascadeValue[1] as string;
+        const ipName = searchIpTag
+          ? (searchModalIpTags.find(t => t._id === searchIpTag)?.name || searchIpTag)
+          : undefined;
+        // 从 categoriesWithSubs 中查找二级分类的别名
+        let subCatAliases: string[] = [];
+        for (const cat of categoriesWithSubs) {
+          const sub = cat.sub_categories?.find(s => s._id === subCatId);
+          if (sub) {
+            subCatAliases = sub.taobao_search_terms || [];
+            break;
+          }
+        }
+        const parts: string[] = [];
+        if (ipName) parts.push(ipName);
+        if (subCatAliases.length > 0) parts.push(...subCatAliases);
+        if (keyword.trim()) parts.push(keyword.trim());
+        const finalKeyword = parts.join(' ').trim();
+
+        if (!finalKeyword) {
+          message.warning('请输入关键词或选择 IP 标签');
+          setSearchLoading(false);
+          return;
+        }
+
+        setLastSearchCtx({ mode: 'keyword', keyword: finalKeyword });
+
+        const response = await guziProductApi.searchAlimama(
+          finalKeyword,
+          1,
+          searchPagination.pageSize,
+          searchSort,
+        );
+        // 级联模式：注入前端匹配度
+        const scoredItems = response.items.map(item => {
+          const { score, details } = _calcMatchScore(item.title, ipName, subCatAliases, keyword);
+          return {
+            ...item,
+            match_score: score,
+            match_detail: details.length > 0 ? `前端匹配: ${details.join('、')}` : undefined,
+          };
+        });
+        setSearchResults(scoredItems);
+        setSearchPagination(prev => ({ ...prev, total: response.total }));
+      } else {
+        // 关键词模式（直接传 keyword）
+        const finalKeyword = _assembleKeyword(keyword, searchIpTag, searchCategoryTag, ipTags, categoryTags);
+
+        if (!finalKeyword) {
+          message.warning('请至少选择一个标签或输入关键词');
+          setSearchLoading(false);
+          return;
+        }
+
+        setLastSearchCtx({ mode: 'keyword', keyword: finalKeyword });
+
+        const response = await guziProductApi.searchAlimama(
+          finalKeyword,
+          1,
+          searchPagination.pageSize,
+          searchSort,
+        );
+        // 关键词模式：按最终关键词片段匹配
+        const keywordParts = finalKeyword.split(/\s+/).filter(Boolean);
+        const scoredItems = response.items.map(item => {
+          const lowerTitle = item.title.toLowerCase();
+          const matchedParts = keywordParts.filter(p => lowerTitle.includes(p.toLowerCase()));
+          const score = keywordParts.length > 0
+            ? Math.round((matchedParts.length / keywordParts.length) * 100)
+            : 0;
+          return {
+            ...item,
+            match_score: score,
+            match_detail: matchedParts.length > 0
+              ? `匹配: ${matchedParts.join('、')}`
+              : undefined,
+          };
+        });
+        setSearchResults(scoredItems);
+        setSearchPagination(prev => ({ ...prev, total: response.total }));
+      }
     } catch (error) {
-      // 后端未实现时使用模拟数据
       setSearchResults(mockSearchResults);
       setSearchPagination(prev => ({ ...prev, total: mockSearchResults.length }));
     } finally {
@@ -309,28 +475,18 @@ export default function GuziProductList() {
 
   // 搜索结果分页切换
   const handleSearchPageChange = async (page: number, pageSize: number) => {
-    // 组装搜索词
-    const parts: string[] = [];
-    if (searchIpTag) {
-      const tag = ipTags.find(t => t._id === searchIpTag);
-      if (tag) parts.push(tag.name);
-    }
-    if (searchCategoryTag) {
-      const tag = categoryTags.find(t => t._id === searchCategoryTag);
-      if (tag) parts.push(tag.name);
-    }
-    if (searchKeyword) {
-      parts.push(searchKeyword.trim());
-    }
-    const finalKeyword = parts.join(' ');
-
-    if (!finalKeyword) return;
-
     setSearchLoading(true);
     setSearchPagination(prev => ({ ...prev, current: page, pageSize }));
     try {
-      const response = await guziProductApi.searchAlimama(finalKeyword, page, pageSize, searchSort);
-      setSearchResults(response.items);
+      if (lastSearchCtx?.mode === 'keyword' && lastSearchCtx.keyword) {
+        const response = await guziProductApi.searchAlimama(lastSearchCtx.keyword, page, pageSize, searchSort);
+        setSearchResults(response.items);
+      } else {
+        const finalKeyword = _assembleKeyword(searchKeyword, searchIpTag, searchCategoryTag, ipTags, categoryTags);
+        if (!finalKeyword) return;
+        const response = await guziProductApi.searchAlimama(finalKeyword, page, pageSize, searchSort);
+        setSearchResults(response.items);
+      }
     } catch (error) {
       message.error('加载更多失败');
     } finally {
@@ -341,29 +497,20 @@ export default function GuziProductList() {
   // 排序切换
   const handleSortChange = async (sort: string) => {
     setSearchSort(sort);
-    // 组装搜索词
-    const parts: string[] = [];
-    if (searchIpTag) {
-      const tag = ipTags.find(t => t._id === searchIpTag);
-      if (tag) parts.push(tag.name);
-    }
-    if (searchCategoryTag) {
-      const tag = categoryTags.find(t => t._id === searchCategoryTag);
-      if (tag) parts.push(tag.name);
-    }
-    if (searchKeyword) {
-      parts.push(searchKeyword.trim());
-    }
-    const finalKeyword = parts.join(' ');
-
-    if (!finalKeyword) return;
-
     setSearchLoading(true);
     setSearchPagination(prev => ({ ...prev, current: 1 }));
     try {
-      const response = await guziProductApi.searchAlimama(finalKeyword, 1, searchPagination.pageSize, sort);
-      setSearchResults(response.items);
-      setSearchPagination(prev => ({ ...prev, total: response.total }));
+      if (lastSearchCtx?.mode === 'keyword' && lastSearchCtx.keyword) {
+        const response = await guziProductApi.searchAlimama(lastSearchCtx.keyword, 1, searchPagination.pageSize, sort);
+        setSearchResults(response.items);
+        setSearchPagination(prev => ({ ...prev, total: response.total }));
+      } else {
+        const finalKeyword = _assembleKeyword(searchKeyword, searchIpTag, searchCategoryTag, ipTags, categoryTags);
+        if (!finalKeyword) return;
+        const response = await guziProductApi.searchAlimama(finalKeyword, 1, searchPagination.pageSize, sort);
+        setSearchResults(response.items);
+        setSearchPagination(prev => ({ ...prev, total: response.total }));
+      }
     } catch (error) {
       message.error('切换排序失败');
     } finally {
@@ -375,12 +522,16 @@ export default function GuziProductList() {
   const handleResetSearch = () => {
     setSearchIpTag(undefined);
     setSearchCategoryTag(undefined);
+    setSearchIpCategory(undefined);
     setSearchKeyword('');
+    setCascadeValue(undefined);
+    setSearchMode('cascade');
     setSearchResults([]);
     setSelectedRows([]);
     setSearchPagination({ current: 1, pageSize: 20, total: 0 });
-    setAddedProductTitles(new Set());
+    setAddedProductIds(new Set());
     setSearchSort('tk_rate_des');
+    setLastSearchCtx(null);
   };
 
   // 添加选中的商品到列表
@@ -392,9 +543,16 @@ export default function GuziProductList() {
 
     setLoading(true);
     try {
-      // 收集本次搜索选中的标签
-      const ipTagIds: string[] = searchIpTag ? [searchIpTag] : [];
-      const categoryTagIds: string[] = searchCategoryTag ? [searchCategoryTag] : [];
+      let ipTagIds: string[] = [];
+      let categoryTagIds: string[] = [];
+
+      if (searchMode === 'cascade' && cascadeValue && cascadeValue.length >= 2) {
+        categoryTagIds = [cascadeValue[1] as string];
+        ipTagIds = searchIpTag ? [searchIpTag] : [];
+      } else {
+        ipTagIds = searchIpTag ? [searchIpTag] : [];
+        categoryTagIds = searchCategoryTag ? [searchCategoryTag] : [];
+      }
 
       const productsToCreate = selectedRows.map(item => ({
         title: item.title,
@@ -409,9 +567,9 @@ export default function GuziProductList() {
       await guziProductApi.createProducts(productsToCreate);
       message.success(`成功添加 ${selectedRows.length} 个商品到数据库`);
       // 标记这些商品已添加（视觉区分）
-      setAddedProductTitles(prev => {
+      setAddedProductIds(prev => {
         const newSet = new Set(prev);
-        selectedRows.forEach(item => newSet.add(item.title));
+        selectedRows.forEach(item => newSet.add(item.platforms[0]?.platform_product_id || item.title));
         return newSet;
       });
       // 不关闭弹窗，方便继续添加其他商品
@@ -485,6 +643,23 @@ export default function GuziProductList() {
   // 打开编辑弹窗
   const handleOpenEdit = (product: GuziProduct) => {
     setEditingProduct(product);
+    // 还原类别标签的级联选择
+    const existingCatTags = product.category_tags || [];
+    if (existingCatTags.length > 0) {
+      const subCatId = existingCatTags[0];
+      let found = false;
+      for (const cat of categoriesWithSubs) {
+        const sub = cat.sub_categories?.find(s => s._id === subCatId);
+        if (sub) {
+          setEditCascadeValue([cat._id, subCatId]);
+          found = true;
+          break;
+        }
+      }
+      if (!found) setEditCascadeValue(undefined);
+    } else {
+      setEditCascadeValue(undefined);
+    }
     setEditModalVisible(true);
   };
 
@@ -606,9 +781,13 @@ export default function GuziProductList() {
     if (!editingProduct) return;
     try {
       const values = await editForm.validateFields();
+      // 从级联值中提取二级分类 ID 作为 category_tags
+      const categoryTags = editCascadeValue && editCascadeValue.length >= 2
+        ? [editCascadeValue[1] as string]
+        : [];
       await guziProductApi.updateProduct(editingProduct.id, {
         ip_tags: values.ip_tags || [],
-        category_tags: values.category_tags || [],
+        category_tags: categoryTags,
         is_active: values.is_active,
       });
       message.success('商品更新成功');
@@ -779,19 +958,28 @@ export default function GuziProductList() {
     {
       title: '类别标签',
       key: 'category_tags',
-      width: 180,
+      width: 200,
       render: (_, record: GuziProduct) => {
         const tags = record.category_tags || [];
         if (tags.length === 0) return <span style={{ color: '#4b5563' }}>-</span>;
         return (
           <Space wrap size={2}>
             {tags.map(tagId => {
+              // 先尝试作为二级分类 ID 查找
+              let foundSub: { name: string; color?: string } | null = null;
+              for (const cat of categoriesWithSubs) {
+                const sub = cat.sub_categories?.find(s => s._id === tagId);
+                if (sub) { foundSub = { name: sub.name, color: sub.color }; break; }
+              }
+              if (foundSub) {
+                return <Tag key={tagId} color={foundSub.color || '#722ed1'} style={{ fontSize: 11 }}>{foundSub.name}</Tag>;
+              }
+              // 再尝试作为旧类别标签 ID 查找
               const tag = categoryTags.find(t => t._id === tagId);
-              return tag ? (
-                <Tag key={tagId} color={tag.color || 'purple'}>{tag.name}</Tag>
-              ) : (
-                <Tag key={tagId} color="purple">{tagId}</Tag>
-              );
+              if (tag) {
+                return <Tag key={tagId} color={tag.color || 'purple'} style={{ fontSize: 11 }}>{tag.name}</Tag>;
+              }
+              return <Tag key={tagId} color="purple" style={{ fontSize: 11 }}>{tagId}</Tag>;
             })}
           </Space>
         );
@@ -877,8 +1065,9 @@ export default function GuziProductList() {
       key: 'selection',
       width: 60,
       render: (_, record) => {
-        const isAdded = addedProductTitles.has(record.title);
-        const isSelected = selectedRows.some(r => r.title === record.title);
+        const productId = record.platforms[0]?.platform_product_id || record.title;
+        const isAdded = addedProductIds.has(productId);
+        const isSelected = selectedRows.some(r => (r.platforms[0]?.platform_product_id || r.title) === productId);
         return (
           <Checkbox
             checked={isSelected}
@@ -887,7 +1076,8 @@ export default function GuziProductList() {
               if (e.target.checked) {
                 setSelectedRows(prev => [...prev, record]);
               } else {
-                setSelectedRows(prev => prev.filter(r => r.title !== record.title));
+                const id = record.platforms[0]?.platform_product_id || record.title;
+                setSelectedRows(prev => prev.filter(r => (r.platforms[0]?.platform_product_id || r.title) !== id));
               }
             }}
           />
@@ -936,11 +1126,11 @@ export default function GuziProductList() {
     {
       title: '商品信息',
       key: 'info',
-      width: 220,
+      width: 300,
       render: (_, record) => (
         <div>
           <Tooltip title={record.title}>
-            <div style={{ fontWeight: 600, marginBottom: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 200 }}>
+            <div style={{ fontWeight: 600, marginBottom: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 280 }}>
               {record.title}
             </div>
           </Tooltip>
@@ -1000,7 +1190,7 @@ export default function GuziProductList() {
     {
       title: '店铺 / 销量',
       key: 'shop',
-      width: 130,
+      width: 160,
       render: (_, record) => {
         const rec = record.platforms[0];
         return (
@@ -1011,7 +1201,7 @@ export default function GuziProductList() {
                   {rec.user_type === 1 ? '天猫' : '淘宝'}
                 </Tag>
                 <Tooltip title={rec.shop_title}>
-                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'inline-block', maxWidth: 70, verticalAlign: 'middle' }}>
+                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'inline-block', maxWidth: 100, verticalAlign: 'middle' }}>
                     {rec.shop_title}
                   </span>
                 </Tooltip>
@@ -1028,9 +1218,29 @@ export default function GuziProductList() {
       },
     },
     {
+      title: '匹配度',
+      key: 'match_score',
+      width: 90,
+      render: (_, record: ProductSearchItem) => {
+        if (!record.match_score || record.match_score === 0) return <span style={{ color: '#4b5563', fontSize: 11 }}>—</span>;
+        const score = record.match_score!;
+        const isHigh = score >= 80;
+        const isMedium = score >= 40 && score < 80;
+        const color = isHigh ? '#52c41a' : isMedium ? '#faad14' : '#ff4d4f';
+        return (
+          <Tooltip title={<span style={{ fontSize: 11 }}>{record.match_detail || `匹配分数: ${score}`}</span>}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+              <span style={{ color, fontWeight: 700, fontSize: 15 }}>{score}</span>
+              <span style={{ color, fontSize: 10 }}>{isHigh ? '强匹配' : isMedium ? '中匹配' : '弱匹配'}</span>
+            </div>
+          </Tooltip>
+        );
+      },
+    },
+    {
       title: '优惠标签',
       key: 'promotion',
-      width: 150,
+      width: 180,
       render: (_, record) => {
         const rec = record.platforms[0];
         const tags = rec?.promotion_tags || [];
@@ -1142,18 +1352,33 @@ export default function GuziProductList() {
             onChange={(val) => { setSelectedIpTag(val); setPagination(p => ({ ...p, current: 1 })); }}
             options={ipTags.map(t => ({ label: t.name, value: t._id }))}
           />
-          <Select
+          <Cascader
             placeholder="类别标签"
             allowClear
-            showSearch
-            filterOption={(input, option) =>
-              (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
-            }
-            style={{ width: 160 }}
+            style={{ width: 200 }}
             size="small"
-            value={selectedCategoryTag}
-            onChange={(val) => { setSelectedCategoryTag(val); setPagination(p => ({ ...p, current: 1 })); }}
-            options={categoryTags.map(t => ({ label: t.name, value: t._id }))}
+            value={listCascadeValue}
+            onChange={(val) => {
+              setListCascadeValue(val || undefined);
+              // 只取二级分类 ID 作为 category_tag 筛选
+              setSelectedCategoryTag(val && val.length >= 2 ? (val[1] as string) : undefined);
+              setPagination(p => ({ ...p, current: 1 }));
+            }}
+            options={categoriesWithSubs
+              .filter(cat => cat.is_active)
+              .sort((a, b) => a.order - b.order || a.name.localeCompare(b.name))
+              .map(cat => ({
+                label: cat.name,
+                value: cat._id,
+                children: (cat.sub_categories || [])
+                  .filter(sub => sub.is_active)
+                  .sort((a, b) => a.order - b.order || a.name.localeCompare(b.name))
+                  .map(sub => ({
+                    label: sub.name,
+                    value: sub._id,
+                  })),
+              }))}
+            displayRender={(labels) => labels.join(' → ')}
           />
           {(selectedIpTag || selectedCategoryTag) && (
             <Button
@@ -1161,6 +1386,7 @@ export default function GuziProductList() {
               size="small"
               onClick={() => {
                 setSelectedIpTag(undefined);
+                setListCascadeValue(undefined);
                 setSelectedCategoryTag(undefined);
                 setPagination(p => ({ ...p, current: 1 }));
               }}
@@ -1231,11 +1457,11 @@ export default function GuziProductList() {
           setSearchModalVisible(false);
           handleResetSearch();
         }}
-        width={1000}
+        width={1400}
         footer={[
           <div key="footer-info" style={{ display: 'flex', alignItems: 'center', gap: 8, float: 'left' }}>
             <Tag color="blue">已选择: {selectedRows.length} 个</Tag>
-            <Tag color="green">本次已添加: {addedProductTitles.size} 个</Tag>
+            <Tag color="green">本次已添加: {addedProductIds.size} 个</Tag>
             <Tag color="default">第 {searchPagination.current} / {Math.ceil((searchPagination.total || searchResults.length) / searchPagination.pageSize) || 1} 页</Tag>
             <Button
               type="link"
@@ -1243,7 +1469,7 @@ export default function GuziProductList() {
               disabled={searchResults.length === 0}
               onClick={() => {
                 // 全选时排除已添加的商品
-                const availableRows = searchResults.filter(r => !addedProductTitles.has(r.title));
+                const availableRows = searchResults.filter(r => !addedProductIds.has(r.platforms[0]?.platform_product_id || r.title));
                 if (selectedRows.length === availableRows.length) {
                   setSelectedRows([]);
                 } else {
@@ -1251,7 +1477,7 @@ export default function GuziProductList() {
                 }
               }}
             >
-              {selectedRows.length === searchResults.filter(r => !addedProductTitles.has(r.title)).length ? '取消全选' : '全选'}
+              {selectedRows.length === searchResults.filter(r => !addedProductIds.has(r.platforms[0]?.platform_product_id || r.title)).length ? '取消全选' : '全选'}
             </Button>
             <Button
               type="link"
@@ -1278,39 +1504,143 @@ export default function GuziProductList() {
       >
         {/* 组合搜索区域 */}
         <div className="combo-search-bar">
+          {/* 搜索模式切换 */}
+          <div className="search-mode-tabs">
+            <Button
+              type={searchMode === 'cascade' ? 'primary' : 'default'}
+              size="small"
+              icon={<SearchOutlined />}
+              onClick={() => { setSearchMode('cascade'); setSearchCategoryTag(undefined); setCascadeValue(undefined); }}
+            >
+              级联搜索（IP + 类别）
+            </Button>
+            <Button
+              type={searchMode === 'keyword' ? 'primary' : 'default'}
+              size="small"
+              icon={<SearchOutlined />}
+              onClick={() => { setSearchMode('keyword'); setCascadeValue(undefined); }}
+            >
+              关键词搜索
+            </Button>
+          </div>
+
           <div className="combo-search-row">
+            {/* IP 类别筛选（两种模式都有） */}
             <div className="combo-search-item">
-              <span className="combo-label">IP标签</span>
+              <span className="combo-label">IP类别</span>
               <Select
-                placeholder="选择 IP 标签（可选）"
+                placeholder="筛选IP类别"
                 allowClear
-                style={{ flex: 1, minWidth: 160 }}
+                style={{ width: 120 }}
                 size="middle"
-                value={searchIpTag}
-                onChange={(val) => setSearchIpTag(val)}
-                options={ipTags.map(t => ({ label: t.name, value: t._id }))}
-                showSearch
-                filterOption={(input, option) =>
-                  (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
-                }
+                value={searchIpCategory}
+                onChange={(val) => setSearchIpCategory(val)}
+                options={[
+                  { label: '动漫', value: 'animation' },
+                  { label: '游戏', value: 'game' },
+                  { label: '其他', value: 'other' },
+                ]}
+                optionRender={(option) => (
+                  <Space>
+                    <span style={{
+                      display: 'inline-block', width: 8, height: 8, borderRadius: 2,
+                      backgroundColor: option.label === '动漫' ? '#1890ff' : option.label === '游戏' ? '#722ed1' : '#faad14',
+                    }} />
+                    {option.label}
+                  </Space>
+                )}
               />
             </div>
-            <div className="combo-search-item">
-              <span className="combo-label">类别标签</span>
-              <Select
-                placeholder="选择类别标签（可选）"
-                allowClear
-                style={{ flex: 1, minWidth: 160 }}
-                size="middle"
-                value={searchCategoryTag}
-                onChange={(val) => setSearchCategoryTag(val)}
-                options={categoryTags.map(t => ({ label: t.name, value: t._id }))}
-                showSearch
-                filterOption={(input, option) =>
-                  (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
-                }
-              />
-            </div>
+
+            {searchMode === 'cascade' ? (
+              <>
+                {/* IP 标签下拉 */}
+                <div className="combo-search-item" style={{ flex: 1, minWidth: 140 }}>
+                  <span className="combo-label">IP标签</span>
+                  <Select
+                    placeholder="选择 IP 标签"
+                    allowClear
+                    style={{ width: '100%' }}
+                    size="middle"
+                    value={searchIpTag}
+                    onChange={(val) => setSearchIpTag(val)}
+                    options={searchModalIpTags.map(t => ({ label: t.name, value: t._id }))}
+                    showSearch
+                    filterOption={(input, option) =>
+                      (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
+                    }
+                  />
+                </div>
+                {/* 一级分类 → 二级分类 级联选择 */}
+                <div className="combo-search-item" style={{ flex: 2 }}>
+                  <span className="combo-label">二级分类</span>
+                  <Cascader
+                    placeholder="选择 一级分类 → 二级分类"
+                    allowClear
+                    style={{ width: '100%' }}
+                    size="middle"
+                    value={cascadeValue}
+                    onChange={(val) => setCascadeValue(val || undefined)}
+                    options={categoriesWithSubs
+                      .filter(cat => cat.is_active)
+                      .sort((a, b) => a.order - b.order || a.name.localeCompare(b.name))
+                      .map(cat => ({
+                        label: cat.name,
+                        value: cat._id,
+                        children: (cat.sub_categories || [])
+                          .filter(sub => sub.is_active)
+                          .sort((a, b) => a.order - b.order || a.name.localeCompare(b.name))
+                          .map(sub => ({
+                            label: sub.taobao_search_terms.length > 0
+                              ? `${sub.name}（${sub.taobao_search_terms.slice(0, 3).join('、')}${sub.taobao_search_terms.length > 3 ? '...' : ''}）`
+                              : sub.name,
+                            value: sub._id,
+                          })),
+                      }))}
+                    displayRender={(labels) => labels.join(' → ')}
+                  />
+                </div>
+              </>
+            ) : (
+              <>
+                {/* IP 标签下拉 */}
+                <div className="combo-search-item" style={{ flex: 1, minWidth: 140 }}>
+                  <span className="combo-label">IP标签</span>
+                  <Select
+                    placeholder="选择 IP 标签"
+                    allowClear
+                    style={{ width: '100%' }}
+                    size="middle"
+                    value={searchIpTag}
+                    onChange={(val) => setSearchIpTag(val)}
+                    options={searchModalIpTags.map(t => ({ label: t.name, value: t._id }))}
+                    showSearch
+                    filterOption={(input, option) =>
+                      (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
+                    }
+                  />
+                </div>
+                {/* 类别标签下拉 */}
+                <div className="combo-search-item" style={{ flex: 1, minWidth: 140 }}>
+                  <span className="combo-label">类别标签</span>
+                  <Select
+                    placeholder="选择类别标签"
+                    allowClear
+                    style={{ width: '100%' }}
+                    size="middle"
+                    value={searchCategoryTag}
+                    onChange={(val) => setSearchCategoryTag(val)}
+                    options={categoryTags.map(t => ({ label: t.name, value: t._id }))}
+                    showSearch
+                    filterOption={(input, option) =>
+                      (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
+                    }
+                  />
+                </div>
+              </>
+            )}
+
+            {/* 关键词输入 */}
             <div className="combo-search-item" style={{ flex: 2 }}>
               <span className="combo-label">关键词</span>
               <Input
@@ -1318,9 +1648,10 @@ export default function GuziProductList() {
                 size="middle"
                 value={searchKeyword}
                 onChange={(e) => setSearchKeyword(e.target.value)}
-                onPressEnter={(e) => handleSearch((e.target as HTMLInputElement).value)}
+                onPressEnter={() => handleSearch(searchKeyword)}
               />
             </div>
+
             <Button
               type="primary"
               size="middle"
@@ -1331,6 +1662,7 @@ export default function GuziProductList() {
             >
               搜索
             </Button>
+
             <Select
               value={searchSort}
               onChange={(val) => handleSortChange(val)}
@@ -1345,24 +1677,50 @@ export default function GuziProductList() {
             />
           </div>
 
-          {/* 组合搜索预览 */}
-          {(searchIpTag || searchCategoryTag || searchKeyword) && (
-            <div className="combo-preview">
-              <span style={{ color: '#9ca3af', fontSize: 12, marginRight: 8 }}>搜索词预览：</span>
-              {searchIpTag && (
-                <Tag color={ipTags.find(t => t._id === searchIpTag)?.color || 'blue'}>
-                  {ipTags.find(t => t._id === searchIpTag)?.name}
-                </Tag>
-              )}
-              {searchCategoryTag && (
-                <Tag color={categoryTags.find(t => t._id === searchCategoryTag)?.color || 'purple'}>
-                  {categoryTags.find(t => t._id === searchCategoryTag)?.name}
-                </Tag>
-              )}
-              {searchKeyword && (
-                <Tag color="default">{searchKeyword}</Tag>
-              )}
-            </div>
+          {/* 搜索词预览 */}
+          {searchMode === 'cascade' && cascadeValue && cascadeValue.length >= 2 ? (() => {
+            const subCatId = cascadeValue[1] as string;
+            let subCatAliases: string[] = [];
+            let subCatName = '';
+            for (const cat of categoriesWithSubs) {
+              const sub = cat.sub_categories?.find(s => s._id === subCatId);
+              if (sub) {
+                subCatAliases = sub.taobao_search_terms || [];
+                subCatName = sub.name;
+                break;
+              }
+            }
+            const ipTag = searchIpTag ? searchModalIpTags.find(t => t._id === searchIpTag) : undefined;
+            return (
+              <div className="combo-preview">
+                <span style={{ color: '#9ca3af', fontSize: 12, marginRight: 8 }}>搜索词：</span>
+                {ipTag && <Tag color={ipTag.color || 'blue'}>{ipTag.name}</Tag>}
+                {subCatAliases.length > 0 ? subCatAliases.map((a, i) => (
+                  <Tag key={i} color="#722ed1">{a}</Tag>
+                )) : subCatName && <Tag color="#722ed1">{subCatName}</Tag>}
+                {searchKeyword && <Tag color="default">{searchKeyword}</Tag>}
+                <span style={{ color: '#52c41a', fontSize: 11 }}>
+                  → {[ipTag?.name, ...subCatAliases, searchKeyword].filter(Boolean).join(' ')}
+                </span>
+              </div>
+            );
+          })() : (
+            (searchIpTag || searchCategoryTag || searchKeyword) && (
+              <div className="combo-preview">
+                <span style={{ color: '#9ca3af', fontSize: 12, marginRight: 8 }}>搜索词预览：</span>
+                {searchIpTag && (
+                  <Tag color={ipTags.find(t => t._id === searchIpTag)?.color || 'blue'}>
+                    {ipTags.find(t => t._id === searchIpTag)?.name}
+                  </Tag>
+                )}
+                {searchCategoryTag && (
+                  <Tag color={categoryTags.find(t => t._id === searchCategoryTag)?.color || 'purple'}>
+                    {categoryTags.find(t => t._id === searchCategoryTag)?.name}
+                  </Tag>
+                )}
+                {searchKeyword && <Tag color="default">{searchKeyword}</Tag>}
+              </div>
+            )
           )}
         </div>
 
@@ -1376,8 +1734,8 @@ export default function GuziProductList() {
             <Table
               columns={searchColumns}
               dataSource={searchResults}
-              rowKey={(record) => record.title}
-              rowClassName={(record) => addedProductTitles.has(record.title) ? 'added-product-row' : ''}
+              rowKey={(record) => record.platforms[0]?.platform_product_id || record.title}
+              rowClassName={(record) => addedProductIds.has(record.platforms[0]?.platform_product_id || record.title) ? 'added-product-row' : ''}
               pagination={{
                 current: searchPagination.current,
                 pageSize: searchPagination.pageSize,
@@ -1387,7 +1745,7 @@ export default function GuziProductList() {
                 showTotal: (total) => `共 ${total} 条`,
                 onChange: handleSearchPageChange,
               }}
-              scroll={{ x: 800, y: 360 }}
+              scroll={{ x: 1200, y: 360 }}
               size="small"
             />
           ) : searchKeyword ? (
@@ -1750,16 +2108,28 @@ export default function GuziProductList() {
               />
             </Form.Item>
 
-            <Form.Item name="category_tags" label="类别标签" extra="标记商品周边形态/性质（如：吧唧、立牌、手办）">
-              <Select
-                mode="multiple"
-                placeholder="请选择或搜索类别标签"
+            <Form.Item label="类别标签" extra="标记商品周边形态/性质（如：吧唧、立牌、手办）">
+              <Cascader
+                placeholder="选择 一级分类 → 二级分类"
                 allowClear
                 style={{ width: '100%' }}
-                options={categoryTags.map(t => ({ label: t.name, value: t._id }))}
-                filterOption={(input, option) =>
-                  (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
-                }
+                value={editCascadeValue}
+                onChange={(val) => setEditCascadeValue(val || undefined)}
+                options={categoriesWithSubs
+                  .filter(cat => cat.is_active)
+                  .sort((a, b) => a.order - b.order || a.name.localeCompare(b.name))
+                  .map(cat => ({
+                    label: cat.name,
+                    value: cat._id,
+                    children: (cat.sub_categories || [])
+                      .filter(sub => sub.is_active)
+                      .sort((a, b) => a.order - b.order || a.name.localeCompare(b.name))
+                      .map(sub => ({
+                        label: sub.name,
+                        value: sub._id,
+                      })),
+                  }))}
+                displayRender={(labels) => labels.join(' → ')}
               />
             </Form.Item>
 
@@ -2204,6 +2574,12 @@ export default function GuziProductList() {
           margin-bottom: 20px;
         }
 
+        .search-mode-tabs {
+          display: flex;
+          gap: 8px;
+          margin-bottom: 12px;
+        }
+
         .combo-search-row {
           display: flex;
           gap: 12px;
@@ -2216,7 +2592,7 @@ export default function GuziProductList() {
           flex-direction: column;
           gap: 4px;
           flex: 1;
-          min-width: 140px;
+          min-width: 180px;
         }
 
         .combo-label {

@@ -7,7 +7,7 @@ from pymongo import ASCENDING
 import logging
 
 from app.database.mongo_pool import mongo_pool
-from app.models.guzi_tag import GuziTag, GuziTagCreate, GuziTagUpdate, TagType
+from app.models.guzi_tag import GuziTag, GuziTagCreate, GuziTagUpdate, TagType, IpCategory
 
 logger = logging.getLogger(__name__)
 
@@ -56,6 +56,7 @@ class GuziTagDAO:
             "remark": tag.remark,
             "is_active": True,
             "show_on_h5": tag.show_on_h5,
+            "ip_category": tag.ip_category.value if tag.ip_category else None,
             "created_at": datetime.utcnow(),
             "updated_at": datetime.utcnow(),
         }
@@ -91,6 +92,7 @@ class GuziTagDAO:
         is_active: Optional[bool] = None,
         show_on_h5: Optional[bool] = None,
         search: Optional[str] = None,
+        ip_category: Optional[IpCategory] = None,
     ) -> List[GuziTag]:
         """查询所有标签，支持筛选"""
         query = {}
@@ -102,6 +104,8 @@ class GuziTagDAO:
             query["show_on_h5"] = show_on_h5
         if search:
             query["name"] = {"$regex": search, "$options": "i"}
+        if ip_category is not None:
+            query["ip_category"] = ip_category.value
 
         cursor = (
             self.collection.find(query)
@@ -121,6 +125,7 @@ class GuziTagDAO:
         is_active: Optional[bool] = None,
         show_on_h5: Optional[bool] = None,
         search: Optional[str] = None,
+        ip_category: Optional[IpCategory] = None,
     ) -> int:
         """统计标签数量"""
         query = {}
@@ -132,6 +137,8 @@ class GuziTagDAO:
             query["show_on_h5"] = show_on_h5
         if search:
             query["name"] = {"$regex": search, "$options": "i"}
+        if ip_category is not None:
+            query["ip_category"] = ip_category.value
         return self.collection.count_documents(query)
 
     def update(self, tag_id: str, tag_update: GuziTagUpdate) -> Optional[GuziTag]:
