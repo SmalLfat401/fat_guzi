@@ -21,6 +21,7 @@ from app.models.guzi_product import (
     GuziProduct,
     GuziProductCreate,
     GuziProductUpdate,
+    GuziProductListResponse,
     ProductSearchItem,
     ProductSearchResponse,
     PlatformProduct,
@@ -318,10 +319,10 @@ async def search_guzi_products(
 #  CRUD 路由
 # ──────────────────────────────────────────────
 
-@router.get("", response_model=List[GuziProduct])
+@router.get("", response_model=GuziProductListResponse)
 async def list_guzi_products(
     skip: int = Query(0, ge=0),
-    limit: int = Query(20, ge=1, le=100),
+    limit: int = Query(40, ge=1, le=100),
     is_active: Optional[bool] = Query(None),
     search: Optional[str] = Query(None),
     ip_tag: Optional[str] = Query(None, description="IP标签ID筛选"),
@@ -329,7 +330,16 @@ async def list_guzi_products(
     h5_filter: bool = Query(True, description="是否过滤H5隐藏的商品"),
 ):
     """获取谷子商品列表（分页）"""
-    return guzi_product_dao.find_all(
+    # 获取总数
+    total = guzi_product_dao.count(
+        is_active=is_active,
+        search=search,
+        ip_tag=ip_tag,
+        category_tag=category_tag,
+        h5_filter=h5_filter,
+    )
+    # 获取列表
+    items = guzi_product_dao.find_all(
         skip=skip,
         limit=limit,
         is_active=is_active,
@@ -338,11 +348,13 @@ async def list_guzi_products(
         category_tag=category_tag,
         h5_filter=h5_filter,
     )
+    return GuziProductListResponse(items=items, total=total)
 
 
 @router.get("/count")
 async def count_guzi_products(
     is_active: Optional[bool] = Query(None),
+    search: Optional[str] = Query(None),
     ip_tag: Optional[str] = Query(None, description="IP标签ID筛选"),
     category_tag: Optional[str] = Query(None, description="类别标签ID筛选"),
     h5_filter: bool = Query(True, description="是否过滤H5隐藏的商品"),
@@ -350,6 +362,7 @@ async def count_guzi_products(
     """获取谷子商品总数"""
     return {"total": guzi_product_dao.count(
         is_active=is_active,
+        search=search,
         ip_tag=ip_tag,
         category_tag=category_tag,
         h5_filter=h5_filter,

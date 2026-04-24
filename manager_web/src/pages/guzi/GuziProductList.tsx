@@ -275,14 +275,8 @@ export default function GuziProductList() {
         ip_tag: selectedIpTag,
         category_tag: selectedCategoryTag,
       });
-      setProducts(data);
-      // 获取总数
-      const total = await guziProductApi.getProductCount({
-        is_active: filterActive,
-        ip_tag: selectedIpTag,
-        category_tag: selectedCategoryTag,
-      });
-      setPagination(prev => ({ ...prev, total }));
+      setProducts(data.items);
+      setPagination(prev => ({ ...prev, total: data.total }));
       // 刷新数据时清空选中状态，避免旧选择与新数据混淆
       setSelectedRowKeys([]);
     } catch (error) {

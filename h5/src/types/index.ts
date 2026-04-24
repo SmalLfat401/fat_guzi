@@ -77,6 +77,8 @@ export interface ProductFilter {
   sortOrder?: 'asc' | 'desc';
   keyword?: string;
   is_active?: boolean;
+  page?: number;
+  pageSize?: number;
 }
 
 // 标签类型

@@ -1,7 +1,7 @@
 /**
  * 商品列表页
  */
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   NavBar,
@@ -20,15 +20,21 @@ import type { GuziProductH5, GuziCategoryWithSubs, GuziTag } from '@/types';
 
 import './index.scss';
 
+const PAGE_SIZE = 40;
+
 const ProductsPage: React.FC = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [products, setProducts] = useState<GuziProductH5[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<GuziProductH5[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
   const [searchValue, setSearchValue] = useState('');
   const [activeTab, setActiveTab] = useState('all');
   const [ipTags, setIpTags] = useState<GuziTag[]>([]);
   const [categories, setCategories] = useState<GuziCategoryWithSubs[]>([]);
+  const contentRef = useRef<HTMLDivElement>(null);
   // 从 ipTags 构建 IP标签 ID→名称映射
   const ipTagIdToName = React.useMemo(
     () => new Map(ipTags.map(t => [t._id, t.name])),
@@ -60,6 +66,9 @@ const ProductsPage: React.FC = () => {
   // 初始化：加载分类数据 + IP标签 + 商品
   const loadInitialData = async () => {
     setLoading(true);
+    setProducts([]);
+    setFilteredProducts([]);
+    setPage(1);
     try {
       // 并行获取：一级分类（含二级）和 IP 标签
       const [categoriesData, ipTagsData] = await Promise.all([
@@ -77,7 +86,20 @@ const ProductsPage: React.FC = () => {
           subMap.set(sub._id, sub.name);
         }
       }
-      await reloadProducts(subMap, ipMap);
+      const result = await fetchProducts(
+        {
+          is_active: true,
+          ipTag: selectedIpTag || undefined,
+          categoryTag: selectedSubCatId || undefined,
+          page: 1,
+          pageSize: PAGE_SIZE,
+        },
+        subMap,
+        ipMap
+      );
+      setProducts(result.items);
+      setTotal(result.total);
+      applyFilters(result.items, activeTab, searchValue);
     } catch (error) {
       console.error('Failed to load initial data:', error);
     } finally {
@@ -85,29 +107,56 @@ const ProductsPage: React.FC = () => {
     }
   };
 
-  // 根据当前筛选条件加载商品列表
-  const reloadProducts = async (
-    subMap?: Map<string, string>,
-    ipMap?: Map<string, string>
-  ) => {
-    const subCatMap = subMap || subCatIdToName;
-    const ipMapData = ipMap || ipTagIdToName;
-    const productsData = await fetchProducts(
-      {
-        is_active: true,
-        ipTag: selectedIpTag || undefined,
-        categoryTag: selectedSubCatId || undefined,
-      },
-      subCatMap,
-      ipMapData
-    );
-    setProducts(productsData);
-    applyFilters(productsData, activeTab, searchValue);
+  // 加载更多商品
+  const loadMoreProducts = async () => {
+    if (loadingMore || products.length >= total) return;
+
+    setLoadingMore(true);
+    try {
+      const nextPage = page + 1;
+      const result = await fetchProducts(
+        {
+          is_active: true,
+          ipTag: selectedIpTag || undefined,
+          categoryTag: selectedSubCatId || undefined,
+          page: nextPage,
+          pageSize: PAGE_SIZE,
+        },
+        subCatIdToName,
+        ipTagIdToName
+      );
+      const newProducts = [...products, ...result.items];
+      setProducts(newProducts);
+      setTotal(result.total);
+      setPage(nextPage);
+      applyFilters(newProducts, activeTab, searchValue);
+    } catch (error) {
+      console.error('Failed to load more products:', error);
+    } finally {
+      setLoadingMore(false);
+    }
   };
+
+  // 滚动检测：触底加载更多
+  useEffect(() => {
+    const contentEl = contentRef.current;
+    if (!contentEl) return;
+
+    const handleScroll = () => {
+      const { scrollTop, scrollHeight, clientHeight } = contentEl;
+      // 距离底部 100px 时触发加载
+      if (scrollTop + clientHeight >= scrollHeight - 100) {
+        loadMoreProducts();
+      }
+    };
+
+    contentEl.addEventListener('scroll', handleScroll, { passive: true });
+    return () => contentEl.removeEventListener('scroll', handleScroll);
+  }, [loadingMore, products.length, total, page, activeTab, searchValue, selectedIpTag, selectedSubCatId]);
 
   // 重新加载数据（当标签筛选变化时）
   useEffect(() => {
-    reloadProducts();
+    loadInitialData();
   }, [selectedIpTag, selectedSubCatId]);
 
   // 应用筛选逻辑（仅用于前端筛选）
@@ -313,7 +362,7 @@ const ProductsPage: React.FC = () => {
                   ))}
               </div>
             )}
-            <div className="products-content">
+            <div className="products-content" ref={contentRef} style={{ overflowY: 'auto', flex: 1 }}>
               {loading ? (
                 <div className="loading-container">
                   <SpinLoading />
@@ -322,9 +371,20 @@ const ProductsPage: React.FC = () => {
               ) : filteredProducts.length === 0 ? (
                 <Empty description="暂无商品" />
               ) : (
-                <div className="products-grid">
-                  {filteredProducts.map(renderProductCard)}
-                </div>
+                <>
+                  <div className="products-grid">
+                    {filteredProducts.map(renderProductCard)}
+                  </div>
+                  {loadingMore && (
+                    <div className="loading-more">
+                      <SpinLoading />
+                      <span>加载中...</span>
+                    </div>
+                  )}
+                  {!loadingMore && products.length >= total && filteredProducts.length > 0 && (
+                    <div className="no-more">— 已加载全部 {total} 件商品 —</div>
+                  )}
+                </>
               )}
             </div>
           </div>
@@ -363,7 +423,7 @@ const ProductsPage: React.FC = () => {
                   ))}
               </div>
             )}
-            <div className="products-content">
+            <div className="products-content" style={{ overflowY: 'auto', flex: 1 }}>
               {loading ? (
                 <div className="loading-container">
                   <SpinLoading />
@@ -372,9 +432,20 @@ const ProductsPage: React.FC = () => {
               ) : filteredProducts.length === 0 ? (
                 <Empty description="暂无热门商品" />
               ) : (
-                <div className="products-grid">
-                  {filteredProducts.map(renderProductCard)}
-                </div>
+                <>
+                  <div className="products-grid">
+                    {filteredProducts.map(renderProductCard)}
+                  </div>
+                  {loadingMore && (
+                    <div className="loading-more">
+                      <SpinLoading />
+                      <span>加载中...</span>
+                    </div>
+                  )}
+                  {!loadingMore && products.length >= total && filteredProducts.length > 0 && (
+                    <div className="no-more">— 已加载全部 {total} 件商品 —</div>
+                  )}
+                </>
               )}
             </div>
           </div>

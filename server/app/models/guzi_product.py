@@ -125,6 +125,12 @@ class GuziProductUpdate(BaseModel):
     detail_fetched: Optional[bool] = None
 
 
+class GuziProductListResponse(BaseModel):
+    """谷子商品列表响应模型（含分页信息）"""
+    items: List[GuziProduct] = Field(..., description="商品列表")
+    total: int = Field(..., description="商品总数")
+
+
 class GuziProductResponse(GuziProductBase):
     """谷子商品响应模型"""
     id: str = Field(..., description="MongoDB 文档ID")

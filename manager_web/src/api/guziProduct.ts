@@ -20,7 +20,7 @@ export const guziProductApi = {
     category_tag?: string;
   }) => {
     // 管理端默认不过滤 H5 隐藏标签，否则无法管理包含隐藏标签的商品
-    const response = await apiClient.get<GuziProduct[]>('/guzi-products', {
+    const response = await apiClient.get<{ items: GuziProduct[]; total: number }>('/guzi-products', {
       params: { ...params, h5_filter: false },
     });
     return response.data;

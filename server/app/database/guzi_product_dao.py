@@ -231,6 +231,7 @@ class GuziProductDAO:
     def count(
         self,
         is_active: Optional[bool] = None,
+        search: Optional[str] = None,
         ip_tag: Optional[str] = None,
         category_tag: Optional[str] = None,
         h5_filter: bool = True,
@@ -239,6 +240,11 @@ class GuziProductDAO:
         query: dict = {}
         if is_active is not None:
             query["is_active"] = is_active
+        if search:
+            query["$or"] = [
+                {"title": {"$regex": search, "$options": "i"}},
+                {"description": {"$regex": search, "$options": "i"}},
+            ]
         if ip_tag:
             query["ip_tags"] = ip_tag
         if category_tag:

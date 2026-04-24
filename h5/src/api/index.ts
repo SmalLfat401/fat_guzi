@@ -151,16 +151,22 @@ function transformProduct(
 
 /**
  * 获取商品列表
+ * @param filter - 筛选参数（包含分页参数 page, pageSize）
+ * @param subCatIdToName - 子分类ID→名称映射
+ * @param ipTagIdToName - IP标签ID→名称映射
+ * @returns 商品列表和总数
  */
 export async function fetchProducts(
-  filter?: ProductFilter,
+  filter?: ProductFilter & { page?: number; pageSize?: number },
   subCatIdToName?: Map<string, string>,
   ipTagIdToName?: Map<string, string>
-): Promise<GuziProductH5[]> {
+): Promise<{ items: GuziProductH5[]; total: number }> {
   try {
+    const page = filter?.page ?? 1;
+    const pageSize = filter?.pageSize ?? 20;
     const params: Record<string, any> = {
-      skip: 0,
-      limit: 100,
+      skip: (page - 1) * pageSize,
+      limit: pageSize,
     };
 
     if (filter?.keyword) {
@@ -176,19 +182,25 @@ export async function fetchProducts(
       params.category_tag = filter.categoryTag;
     }
 
-    const data: any = await apiClient.get('/guzi-products', { params });
-    const products = Array.isArray(data) ? data : (data.items || []);
+    const response: any = await apiClient.get('/guzi-products', { params });
+    // 后端返回 { items: [...], total: number }
+    const items: BackendGuziProduct[] = Array.isArray(response)
+      ? response
+      : (response?.items || []);
+    const total: number = response?.total ?? (Array.isArray(response) ? response.length : 0);
 
-    return (products as BackendGuziProduct[]).map((p) =>
+    const transformedProducts = items.map((p) =>
       transformProduct(
         p,
         ipTagIdToName || new Map(),
         subCatIdToName || new Map()
       )
     );
+
+    return { items: transformedProducts, total };
   } catch (error) {
     console.error('获取商品列表失败:', error);
-    return [];
+    return { items: [], total: 0 };
   }
 }
 
