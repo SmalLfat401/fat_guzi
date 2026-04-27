@@ -109,7 +109,7 @@ const ProductsPage: React.FC = () => {
 
   // 加载更多商品
   const loadMoreProducts = async () => {
-    if (loadingMore || products.length >= total) return;
+    if (loading || loadingMore || products.length >= total) return;
 
     setLoadingMore(true);
     try {
@@ -154,9 +154,40 @@ const ProductsPage: React.FC = () => {
     return () => contentEl.removeEventListener('scroll', handleScroll);
   }, [loadingMore, products.length, total, page, activeTab, searchValue, selectedIpTag, selectedSubCatId]);
 
+  // 重新加载商品列表（当标签筛选变化时，不重新请求分类和标签）
+  const reloadProducts = async () => {
+    setLoading(true);
+    setProducts([]);
+    setFilteredProducts([]);
+    setPage(1);
+    try {
+      const result = await fetchProducts(
+        {
+          is_active: true,
+          ipTag: selectedIpTag || undefined,
+          categoryTag: selectedSubCatId || undefined,
+          page: 1,
+          pageSize: PAGE_SIZE,
+        },
+        subCatIdToName,
+        ipTagIdToName
+      );
+      setProducts(result.items);
+      setTotal(result.total);
+      applyFilters(result.items, activeTab, searchValue);
+    } catch (error) {
+      console.error('Failed to reload products:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // 重新加载数据（当标签筛选变化时）
   useEffect(() => {
-    loadInitialData();
+    if (ipTags.length > 0 || categories.length > 0) {
+      // 只有在分类和标签已加载后才重新加载商品
+      reloadProducts();
+    }
   }, [selectedIpTag, selectedSubCatId]);
 
   // 应用筛选逻辑（仅用于前端筛选）
