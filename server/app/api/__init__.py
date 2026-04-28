@@ -16,6 +16,8 @@ from app.api.weibo_intel import router as weibo_intel_router
 from app.api.want_guzi import router as want_guzi_router
 from app.api.features import router as features_router
 from app.api.guzi_categories import router as guzi_categories_router
+from app.api.publish_channels import router as publish_channels_router
+from app.api.schedule_items import router as schedule_items_router
 
 __all__ = [
     "routes_router",
@@ -35,4 +37,6 @@ __all__ = [
     "want_guzi_router",
     "features_router",
     "guzi_categories_router",
+    "publish_channels_router",
+    "schedule_items_router",
 ]

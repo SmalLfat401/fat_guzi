@@ -2,7 +2,7 @@ import React from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { Layout, Menu, ConfigProvider, theme, Spin } from 'antd';
 import zhCN from 'antd/locale/zh_CN';
-import { UserOutlined, DashboardOutlined, SettingOutlined, TagOutlined, DatabaseOutlined, BulbOutlined, ShoppingOutlined, BookOutlined, FireOutlined, CalendarOutlined, HeartOutlined, KeyOutlined, ThunderboltOutlined, RobotOutlined, AlertOutlined, GiftOutlined, AppstoreOutlined } from '@ant-design/icons';
+import { UserOutlined, DashboardOutlined, SettingOutlined, TagOutlined, DatabaseOutlined, BulbOutlined, ShoppingOutlined, BookOutlined, FireOutlined, CalendarOutlined, HeartOutlined, KeyOutlined, ThunderboltOutlined, RobotOutlined, AlertOutlined, GiftOutlined, AppstoreOutlined, ScheduleOutlined, TeamOutlined } from '@ant-design/icons';
 import { useFeatures } from './context/FeaturesContext';
 import './styles/global.scss';
 
@@ -65,6 +65,15 @@ function App() {
     },
     { key: '/guzi-products', icon: <ShoppingOutlined />, label: '谷子商品' },
     { key: '/want-guzi', icon: <GiftOutlined />, label: '求谷管理' },
+    {
+      key: 'schedule',
+      icon: <ScheduleOutlined />,
+      label: '内容排期',
+      children: [
+        { key: '/schedule', icon: <TeamOutlined />, label: '周排期总览' },
+        { key: '/schedule/channels', icon: <ScheduleOutlined />, label: '发布渠道配置' },
+      ],
+    },
     { key: '/dashboard', icon: <DashboardOutlined />, label: '数据看板' },
     {
       key: 'settings',

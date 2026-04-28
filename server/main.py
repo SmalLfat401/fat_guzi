@@ -24,6 +24,8 @@ from app.api import (
     h5_intel,
     want_guzi_router,
     features_router,
+    publish_channels_router,
+    schedule_items_router,
 )
 from app.crawler.playwright_client import PlaywrightClient
 from app.config.settings import settings
@@ -119,6 +121,10 @@ app.include_router(h5_glossary_router, prefix="/api/v1", tags=["H5 术语百科"
 app.include_router(h5_intel.router, prefix="/api/v1", tags=["H5 情报"])
 app.include_router(want_guzi_router, prefix="/api/v1", tags=["求谷管理"])
 app.include_router(guzi_categories_router, prefix="/api/v1", tags=["谷子分类管理"])
+app.include_router(publish_channels_router, prefix="/api/v1", tags=["发布渠道管理"])
+app.include_router(schedule_items_router, prefix="/api/v1", tags=["排期内容管理"])
+app.include_router(publish_channels_router, prefix="/api/v1", tags=["发布渠道管理"])
+app.include_router(schedule_items_router, prefix="/api/v1", tags=["排期内容管理"])
 
 
 @app.get("/")

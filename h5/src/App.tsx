@@ -34,7 +34,8 @@ function AppContent() {
   // 默认首页跳转到 /products
   React.useEffect(() => {
     if (location.pathname === '/') {
-      navigate('/products', { replace: true });
+      // navigate('/products', { replace: true });
+      navigate('/calendar', { replace: true });
     }
   }, [location.pathname, navigate]);
 
