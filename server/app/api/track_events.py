@@ -53,13 +53,15 @@ def _calc_change(today: int, yesterday: int) -> float:
 @router.get("/track/stats", response_model=TrackStatsResponse, tags=["H5 埋点"])
 async def get_track_stats(
     start_date: Optional[str] = None,
-    end_date: Optional[str] = None
+    end_date: Optional[str] = None,
+    hot_searches_limit: Optional[int] = None,
 ):
     """
     获取埋点统计数据（管理端看板用）
 
     - 默认查询最近 7 天数据
     - start_date / end_date 格式：YYYY-MM-DD
+    - hot_searches_limit: 热门搜索词数量限制（默认20）
     """
     today = datetime.utcnow()
     end = end_date or today.strftime("%Y-%m-%d")
@@ -134,7 +136,8 @@ async def get_track_stats(
     ]
 
     # 热门搜索词
-    hot_searches = track_event_dao.get_hot_searches(start, end, limit=20)
+    hot_search_limit = hot_searches_limit or 20
+    hot_searches = track_event_dao.get_hot_searches(start, end, limit=hot_search_limit)
 
     # 转化漏斗
     funnel_raw = track_event_dao.get_conversion_funnel(start, end)

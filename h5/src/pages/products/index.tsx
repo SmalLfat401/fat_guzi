@@ -5,7 +5,6 @@ import React, { useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   NavBar,
-  SearchBar,
   Card,
   Image,
   Tag,
@@ -30,7 +29,6 @@ const ProductsPage: React.FC = () => {
     loading, loadingMore, setLoadingMore, total, setTotal,
     categories, ipTags,
     activeTab, setActiveTab,
-    searchValue, setSearchValue,
     selectedIpTag, setSelectedIpTag,
     cascadeValue, setCascadeValue,
     selectedSubCatId,
@@ -115,15 +113,6 @@ const ProductsPage: React.FC = () => {
   }, [filteredProducts]);
 
   // ─── 事件处理 ───
-
-  const prevSearchRef = useRef('');
-  const handleSearch = (value: string) => {
-    if (value && value.trim() !== prevSearchRef.current) {
-      tracker.search(value.trim());
-      prevSearchRef.current = value.trim();
-    }
-    setSearchValue(value);
-  };
 
   const handleTabChange = (tab: string) => {
     setActiveTab(tab);
@@ -303,12 +292,10 @@ const ProductsPage: React.FC = () => {
       </div>
 
       <div className="products-sticky-header">
-        <SearchBar
-          placeholder="搜索谷子商品..."
-          value={searchValue}
-          onChange={handleSearch}
-          className="search-bar"
-        />
+        <div className="search-bar-wrapper" onClick={() => navigate('/search')}>
+          <span className="search-icon">🔍</span>
+          <span className="search-placeholder">搜索谷子商品...</span>
+        </div>
         {!loading && ipTags.length > 0 && (
           <div className="filter-section">
             {renderIpFilterTags()}

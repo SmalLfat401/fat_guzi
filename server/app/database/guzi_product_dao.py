@@ -26,6 +26,90 @@ logger = logging.getLogger(__name__)
 COLLECTION_NAME = "guzi_products"
 
 
+def _build_search_query(search: str) -> Optional[dict]:
+    """
+    构建多关键词分词搜索查询。
+    
+    支持空格分隔的多关键词模糊匹配：
+    - "火影 吧唧" → 同时包含"火影"和"吧唧"的商品
+    - 每个词分别匹配：标题、描述、IP标签名、类别标签名
+    
+    返回 MongoDB 查询表达式，或 None（无有效关键词时）
+    """
+    if not search or not search.strip():
+        return None
+    
+    # 分词：按空格分割，过滤空字符串
+    keywords = [kw.strip() for kw in search.split() if kw.strip()]
+    if not keywords:
+        return None
+    
+    # 单关键词：直接匹配
+    if len(keywords) == 1:
+        keyword = keywords[0]
+        return _single_keyword_query(keyword)
+    
+    # 多关键词：每个关键词都要匹配（AND 关系）
+    return _multi_keywords_query(keywords)
+
+
+def _single_keyword_query(keyword: str) -> dict:
+    """构建单个关键词的搜索查询"""
+    # 1. 先找匹配的标签
+    matching_ip_tag_ids = _search_tag_ids_by_name(keyword, TagType.IP)
+    matching_category_tag_ids = _search_tag_ids_by_name(keyword, TagType.CATEGORY)
+    
+    # 2. 构建标题/描述的正则匹配
+    title_desc_query = {
+        "$or": [
+            {"title": {"$regex": keyword, "$options": "i"}},
+            {"description": {"$regex": keyword, "$options": "i"}},
+        ]
+    }
+    
+    # 3. 组合所有匹配条件（OR 关系）
+    tag_query_parts: List[dict] = []
+    if matching_ip_tag_ids:
+        tag_query_parts.append({"ip_tags": {"$in": matching_ip_tag_ids}})
+    if matching_category_tag_ids:
+        tag_query_parts.append({"category_tags": {"$in": matching_category_tag_ids}})
+    
+    if tag_query_parts:
+        return {"$or": [title_desc_query, {"$or": tag_query_parts}]}
+    return title_desc_query
+
+
+def _multi_keywords_query(keywords: List[str]) -> dict:
+    """
+    构建多个关键词的搜索查询。
+    要求商品必须同时匹配所有关键词（AND 关系）。
+    """
+    keyword_queries: List[dict] = []
+    
+    for keyword in keywords:
+        # 每个关键词的匹配条件
+        single_query = _single_keyword_query(keyword)
+        keyword_queries.append(single_query)
+    
+    # 所有关键词都要匹配
+    return {"$and": keyword_queries}
+
+
+def _search_tag_ids_by_name(keyword: str, tag_type: TagType) -> List[str]:
+    """根据关键词搜索指定类型的标签ID"""
+    try:
+        tags = guzi_tag_dao.find_all(
+            tag_type=tag_type,
+            is_active=True,
+            search=keyword,
+            limit=100,
+        )
+        return [tag.id for tag in tags]
+    except Exception as e:
+        logger.warning(f"搜索标签失败 ({tag_type.value}): {e}")
+        return []
+
+
 def _get_hidden_tag_ids(tag_type: TagType) -> List[str]:
     """获取指定类型中 show_on_h5=false 的标签ID列表"""
     try:
@@ -191,15 +275,16 @@ class GuziProductDAO:
 
         Args:
             h5_filter: 是否过滤H5隐藏的商品（默认True）
+            search: 支持多关键词分词匹配，按空格分隔
         """
         query: dict = {}
         if is_active is not None:
             query["is_active"] = is_active
         if search:
-            query["$or"] = [
-                {"title": {"$regex": search, "$options": "i"}},
-                {"description": {"$regex": search, "$options": "i"}},
-            ]
+            search_query = _build_search_query(search)
+            if search_query:
+                query["$and"] = [search_query]
+                
         if ip_tag:
             query["ip_tags"] = ip_tag
         if category_tag:
@@ -207,6 +292,7 @@ class GuziProductDAO:
 
         # H5端过滤：如果某个标签被设为不在H5显示，则过滤掉包含该标签的商品
         if h5_filter:
+            from app.models.guzi_tag import TagType
             hidden_ip_tag_ids = _get_hidden_tag_ids(TagType.IP)
             hidden_category_tag_ids = _get_hidden_tag_ids(TagType.CATEGORY)
 
@@ -236,15 +322,18 @@ class GuziProductDAO:
         category_tag: Optional[str] = None,
         h5_filter: bool = True,
     ) -> int:
-        """统计商品总数"""
+        """统计商品总数
+        
+        search 支持多关键词分词匹配，按空格分隔
+        """
         query: dict = {}
         if is_active is not None:
             query["is_active"] = is_active
         if search:
-            query["$or"] = [
-                {"title": {"$regex": search, "$options": "i"}},
-                {"description": {"$regex": search, "$options": "i"}},
-            ]
+            search_query = _build_search_query(search)
+            if search_query:
+                query["$and"] = [search_query]
+                
         if ip_tag:
             query["ip_tags"] = ip_tag
         if category_tag:
@@ -252,6 +341,7 @@ class GuziProductDAO:
 
         # H5端过滤
         if h5_filter:
+            from app.models.guzi_tag import TagType
             hidden_ip_tag_ids = _get_hidden_tag_ids(TagType.IP)
             hidden_category_tag_ids = _get_hidden_tag_ids(TagType.CATEGORY)
 

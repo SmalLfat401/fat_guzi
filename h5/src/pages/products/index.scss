@@ -32,9 +32,31 @@
     border-bottom: 1px solid $border-color;
     padding-top: 0.3rem;
 
-    .search-bar {
-      background: $bg-card;
-      padding: $spacing-sm $spacing-base;
+    // 点击跳转搜索页的搜索栏
+    .search-bar-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      background: $bg-page;
+      border-radius: 20px;
+      padding: 0.8rem 1.2rem;
+      margin: 0 $spacing-base;
+      cursor: pointer;
+      transition: background 0.2s;
+
+      &:active {
+        background: darken($bg-page, 5%);
+      }
+
+      .search-icon {
+        font-size: 1.4rem;
+        opacity: 0.5;
+      }
+
+      .search-placeholder {
+        font-size: $font-size-sm;
+        color: $text-tertiary;
+      }
     }
 
     // IP 标签横向滚动筛选

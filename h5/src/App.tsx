@@ -12,6 +12,7 @@ import ProductsPage from '@/pages/products';
 import ProductDetailPage from '@/pages/products/ProductDetail';
 import WantGuziPage from '@/pages/products/WantGuzi';
 import GlossaryPage from '@/pages/glossary';
+import SearchPage from '@/pages/search/SearchPage';
 import { ProductsProvider } from '@/pages/products/ProductsContext';
 
 // 路由配置
@@ -23,6 +24,7 @@ const routes = [
   { path: '/product/:id', component: ProductDetailPage },
   { path: '/want-guzi', component: WantGuziPage },
   { path: '/glossary', component: GlossaryPage },
+  { path: '/search', component: SearchPage },
 ];
 
 function AppContent() {

@@ -482,16 +482,90 @@ export async function submitWantGuzi(form: WantGuziForm): Promise<WantGuziRespon
   return response as unknown as WantGuziResponse;
 }
 
+/**
+ * 搜索商品（支持按商品名称、IP标签、类别标签模糊匹配）
+ * @param keyword - 搜索关键词
+ * @param page - 页码
+ * @param pageSize - 每页数量
+ * @param subCatIdToName - 子分类ID→名称映射
+ * @param ipTagIdToName - IP标签ID→名称映射
+ * @returns 商品列表和总数
+ */
+export async function searchProducts(
+  keyword: string,
+  page: number = 1,
+  pageSize: number = 20,
+  subCatIdToName?: Map<string, string>,
+  ipTagIdToName?: Map<string, string>
+): Promise<{ items: GuziProductH5[]; total: number }> {
+  try {
+    const params: Record<string, any> = {
+      skip: (page - 1) * pageSize,
+      limit: pageSize,
+      search: keyword.trim(),
+      is_active: true, // H5 只搜索上架商品
+    };
+
+    const response: any = await apiClient.get('/guzi-products', { params });
+    const items: BackendGuziProduct[] = Array.isArray(response)
+      ? response
+      : (response?.items || []);
+    const total: number = response?.total ?? 0;
+
+    const transformedProducts = items.map((p) =>
+      transformProduct(
+        p,
+        ipTagIdToName || new Map(),
+        subCatIdToName || new Map()
+      )
+    );
+
+    return { items: transformedProducts, total };
+  } catch (error) {
+    console.error('搜索商品失败:', error);
+    return { items: [], total: 0 };
+  }
+}
+
+// ──────────────────────────────────────────────
+// 热门搜索词 API（从管理端埋点数据获取）
+// ──────────────────────────────────────────────
+
+export interface HotSearchItem {
+  keyword: string;
+  count: number;
+}
+
+/**
+ * 获取热门搜索词（从埋点数据聚合）
+ * @param limit - 返回数量，默认 10
+ * @returns 热门搜索词列表
+ */
+export async function fetchHotSearches(limit: number = 10): Promise<HotSearchItem[]> {
+  try {
+    const response: any = await apiClient.get('/track/stats', {
+      params: { hot_searches_limit: limit },
+    });
+    // 后端返回格式：{ hot_searches: [{ keyword: string, count: number }] }
+    return response?.hot_searches || [];
+  } catch (error) {
+    console.error('获取热门搜索词失败:', error);
+    return [];
+  }
+}
+
 export default {
   fetchHomeData,
   fetchCalendarEvents,
   fetchIntelEventDetail,
   fetchProducts,
   fetchProductDetail,
+  searchProducts,
   fetchTags,
   fetchCategories,
   fetchNotices,
   generateTkl,
   fetchGlossaryTerms,
   fetchGlossaryStats,
+  fetchHotSearches,
 };
