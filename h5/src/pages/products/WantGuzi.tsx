@@ -6,6 +6,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { NavBar, Form, Input, TextArea, Button, Popup, Toast } from 'antd-mobile';
 import { fetchCategories, fetchTags, submitWantGuzi } from '@/api';
+import { tracker } from '@/utils/tracker';
 import type { GuziCategoryWithSubs, GuziTag } from '@/types';
 import './index.scss';
 
@@ -128,6 +129,15 @@ const WantGuziPage: React.FC = () => {
       Toast.show({
         content: '谷菌收到了你的需求，马上开始找',
         icon: 'success',
+      });
+
+      tracker.submit({
+        action: 'want_guzi_submit',
+        extra: {
+          ip_name: ipName,
+          category_count: selectedCategory.length > 0 ? 1 : 0,
+          has_remark: !!values.remark,
+        },
       });
 
       setTimeout(() => {

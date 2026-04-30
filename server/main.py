@@ -26,6 +26,7 @@ from app.api import (
     features_router,
     publish_channels_router,
     schedule_items_router,
+    track_events_router,
 )
 from app.crawler.playwright_client import PlaywrightClient
 from app.config.settings import settings
@@ -87,7 +88,11 @@ app = FastAPI(
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[
+        "http://localhost:3001",
+        "http://localhost:5173",
+        "http://localhost:3000",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -123,8 +128,7 @@ app.include_router(want_guzi_router, prefix="/api/v1", tags=["求谷管理"])
 app.include_router(guzi_categories_router, prefix="/api/v1", tags=["谷子分类管理"])
 app.include_router(publish_channels_router, prefix="/api/v1", tags=["发布渠道管理"])
 app.include_router(schedule_items_router, prefix="/api/v1", tags=["排期内容管理"])
-app.include_router(publish_channels_router, prefix="/api/v1", tags=["发布渠道管理"])
-app.include_router(schedule_items_router, prefix="/api/v1", tags=["排期内容管理"])
+app.include_router(track_events_router, prefix="/api/v1", tags=["H5 埋点"])
 
 
 @app.get("/")

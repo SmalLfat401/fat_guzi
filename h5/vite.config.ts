@@ -20,6 +20,12 @@ export default defineConfig({
   server: {
     port: 3001,
     host: true,
+    proxy: {
+      '/api': {
+        target: 'http://localhost:8879',
+        changeOrigin: true,
+      },
+    },
   },
   build: {
     // 多平台构建配置

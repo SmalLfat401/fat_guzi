@@ -1,7 +1,7 @@
 /**
  * 商品列表页
  */
-import React, { useEffect, useState, useCallback, useRef } from 'react';
+import React, { useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   NavBar,
@@ -9,111 +9,51 @@ import {
   Card,
   Image,
   Tag,
-  Skeleton,
   Empty,
   Tabs,
   SpinLoading,
-  DotLoading,
 } from 'antd-mobile';
-import { fetchProducts, fetchCategories, fetchTags } from '@/api';
-import type { GuziProductH5, GuziCategoryWithSubs, GuziTag } from '@/types';
+import { fetchProducts } from '@/api';
+import { tracker, observeExpose } from '@/utils/tracker';
+import type { GuziProductH5 } from '@/types';
+import { useProducts, PAGE_SIZE } from './ProductsContext';
 
 import './index.scss';
 
-const PAGE_SIZE = 40;
-
 const ProductsPage: React.FC = () => {
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [products, setProducts] = useState<GuziProductH5[]>([]);
-  const [filteredProducts, setFilteredProducts] = useState<GuziProductH5[]>([]);
-  const [total, setTotal] = useState(0);
-  const [page, setPage] = useState(1);
-  const [searchValue, setSearchValue] = useState('');
-  const [activeTab, setActiveTab] = useState('all');
-  const [ipTags, setIpTags] = useState<GuziTag[]>([]);
-  const [categories, setCategories] = useState<GuziCategoryWithSubs[]>([]);
   const contentRef = useRef<HTMLDivElement>(null);
-  // 从 ipTags 构建 IP标签 ID→名称映射
-  const ipTagIdToName = React.useMemo(
-    () => new Map(ipTags.map(t => [t._id, t.name])),
-    [ipTags]
-  );
-  // 从 categories 构建 sub_category ID→名称映射
-  const subCatIdToName = React.useMemo(() => {
-    const map = new Map<string, string>();
-    for (const cat of categories) {
-      for (const sub of cat.sub_categories || []) {
-        map.set(sub._id, sub.name);
-      }
-    }
-    return map;
-  }, [categories]);
 
-  // 筛选状态
-  const [selectedIpTag, setSelectedIpTag] = useState<string | null>(null);
-  // 级联选择：一级分类ID + 二级分类ID
-  const [cascadeValue, setCascadeValue] = useState<[string, string] | null>(null);
-
-  // 计算当前选中的二级分类ID（用于API筛选）
-  const selectedSubCatId = cascadeValue?.[1] || null;
+  const {
+    products, setProducts,
+    filteredProducts,
+    loading, loadingMore, setLoadingMore, total, setTotal,
+    categories, ipTags,
+    activeTab, setActiveTab,
+    searchValue, setSearchValue,
+    selectedIpTag, setSelectedIpTag,
+    cascadeValue, setCascadeValue,
+    selectedSubCatId,
+    ipTagIdToName, subCatIdToName,
+    ensureLoaded,
+    scrollTop, setScrollTop,
+  } = useProducts();
 
   useEffect(() => {
-    loadInitialData();
-  }, []);
+    ensureLoaded();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // 初始化：加载分类数据 + IP标签 + 商品
-  const loadInitialData = async () => {
-    setLoading(true);
-    setProducts([]);
-    setFilteredProducts([]);
-    setPage(1);
-    try {
-      // 并行获取：一级分类（含二级）和 IP 标签
-      const [categoriesData, ipTagsData] = await Promise.all([
-        fetchCategories(true),
-        fetchTags('ip'),
-      ]);
-      setCategories(categoriesData);
-      setIpTags(ipTagsData);
+  // 加载更多（ref 保证闭包中拿到最新 products）
+  const productsRef = useRef(products);
+  productsRef.current = products;
 
-      // 构建映射后加载商品
-      const ipMap = new Map(ipTagsData.map((t: GuziTag) => [t._id, t.name]));
-      const subMap = new Map<string, string>();
-      for (const cat of categoriesData) {
-        for (const sub of cat.sub_categories || []) {
-          subMap.set(sub._id, sub.name);
-        }
-      }
-      const result = await fetchProducts(
-        {
-          is_active: true,
-          ipTag: selectedIpTag || undefined,
-          categoryTag: selectedSubCatId || undefined,
-          page: 1,
-          pageSize: PAGE_SIZE,
-        },
-        subMap,
-        ipMap
-      );
-      setProducts(result.items);
-      setTotal(result.total);
-      applyFilters(result.items, activeTab, searchValue);
-    } catch (error) {
-      console.error('Failed to load initial data:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // 加载更多商品
-  const loadMoreProducts = async () => {
-    if (loading || loadingMore || products.length >= total) return;
+  const loadMoreProducts = useCallback(async () => {
+    if (loading || loadingMore) return;
+    if (productsRef.current.length >= Math.min(total, 200)) return;
 
     setLoadingMore(true);
     try {
-      const nextPage = page + 1;
+      const nextPage = Math.floor(productsRef.current.length / PAGE_SIZE) + 1;
       const result = await fetchProducts(
         {
           is_active: true,
@@ -125,190 +65,150 @@ const ProductsPage: React.FC = () => {
         subCatIdToName,
         ipTagIdToName
       );
-      const newProducts = [...products, ...result.items];
-      setProducts(newProducts);
+      setProducts(prev => [...prev, ...result.items]);
       setTotal(result.total);
-      setPage(nextPage);
-      applyFilters(newProducts, activeTab, searchValue);
     } catch (error) {
       console.error('Failed to load more products:', error);
     } finally {
       setLoadingMore(false);
     }
-  };
+  }, [loading, loadingMore, total, selectedIpTag, selectedSubCatId, subCatIdToName, ipTagIdToName, setProducts, setTotal, setLoadingMore]);
 
-  // 滚动检测：触底加载更多
+  // 滚动检测 + 位置恢复
   useEffect(() => {
     const contentEl = contentRef.current;
     if (!contentEl) return;
 
+    // 从 Context 恢复滚动位置（从详情页返回时生效）
+    if (scrollTop > 0) {
+      contentEl.scrollTop = scrollTop;
+    }
+
     const handleScroll = () => {
-      const { scrollTop, scrollHeight, clientHeight } = contentEl;
-      // 距离底部 100px 时触发加载
-      if (scrollTop + clientHeight >= scrollHeight - 100) {
+      const { scrollTop: top } = contentEl;
+      setScrollTop(top);
+      const { scrollTop: st, scrollHeight, clientHeight } = contentEl;
+      if (st + clientHeight >= scrollHeight - 100) {
         loadMoreProducts();
       }
     };
 
     contentEl.addEventListener('scroll', handleScroll, { passive: true });
     return () => contentEl.removeEventListener('scroll', handleScroll);
-  }, [loadingMore, products.length, total, page, activeTab, searchValue, selectedIpTag, selectedSubCatId]);
+  }, [loadMoreProducts, scrollTop, setScrollTop]);
 
-  // 重新加载商品列表（当标签筛选变化时，不重新请求分类和标签）
-  const reloadProducts = async () => {
-    setLoading(true);
-    setProducts([]);
-    setFilteredProducts([]);
-    setPage(1);
-    try {
-      const result = await fetchProducts(
-        {
-          is_active: true,
-          ipTag: selectedIpTag || undefined,
-          categoryTag: selectedSubCatId || undefined,
-          page: 1,
-          pageSize: PAGE_SIZE,
-        },
-        subCatIdToName,
-        ipTagIdToName
-      );
-      setProducts(result.items);
-      setTotal(result.total);
-      applyFilters(result.items, activeTab, searchValue);
-    } catch (error) {
-      console.error('Failed to reload products:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // 重新加载数据（当标签筛选变化时）
+  // 曝光监控
   useEffect(() => {
-    if (ipTags.length > 0 || categories.length > 0) {
-      // 只有在分类和标签已加载后才重新加载商品
-      reloadProducts();
-    }
-  }, [selectedIpTag, selectedSubCatId]);
+    const contentEl = contentRef.current;
+    if (!contentEl || filteredProducts.length === 0) return;
 
-  // 应用筛选逻辑（仅用于前端筛选）
-  const applyFilters = useCallback((
-    allProducts: GuziProductH5[],
-    tab: string,
-    keyword: string,
-  ) => {
-    let filtered = [...allProducts];
-
-    // Tab 筛选
-    if (tab === 'hot') {
-      filtered = filtered.filter(p => p.isHot);
-    }
-
-    // 关键词搜索（仅在后端筛选后进行补充筛选）
-    if (keyword) {
-      const lowerKeyword = keyword.toLowerCase();
-      filtered = filtered.filter(p =>
-        p.name.toLowerCase().includes(lowerKeyword) ||
-        p.description?.toLowerCase().includes(lowerKeyword)
+    const timer = setTimeout(() => {
+      observeExpose(
+        contentRef,
+        (el) => el.getAttribute('data-track-id') || '',
+        (el) => el.querySelector('.product-title')?.textContent?.trim() || '',
+        { threshold: 0.3 }
       );
-    }
+    }, 100);
 
-    setFilteredProducts(filtered);
-  }, []);
+    return () => clearTimeout(timer);
+  }, [filteredProducts]);
 
-  // 搜索处理
+  // ─── 事件处理 ───
+
+  const prevSearchRef = useRef('');
   const handleSearch = (value: string) => {
+    if (value && value.trim() !== prevSearchRef.current) {
+      tracker.search(value.trim());
+      prevSearchRef.current = value.trim();
+    }
     setSearchValue(value);
-    applyFilters(products, activeTab, value);
   };
 
-  // Tab 切换处理
   const handleTabChange = (tab: string) => {
     setActiveTab(tab);
-    applyFilters(products, tab, searchValue);
+    tracker.action('switch_tab', { extra: { tab } });
   };
 
-  // IP 标签筛选
   const handleIpTagFilter = (tagId: string | null) => {
+    if (tagId) {
+      const label = ipTagIdToName.get(tagId) || tagId;
+      tracker.filter('ip_tag', label);
+    }
     setSelectedIpTag(tagId);
   };
 
-  // 类别标签筛选（级联：返回 [一级ID, 二级ID] 或 null）
   const handleCategoryTagFilter = (value: [string, string] | null) => {
+    if (value) {
+      const label = subCatIdToName.get(value[1]) || value[1];
+      tracker.filter('category_tag', label);
+    }
     setCascadeValue(value);
   };
 
-  // 获取商品图片（支持多图）
-  const getProductImages = (product: GuziProductH5) => {
-    if (product.images && product.images.length > 0) {
-      return product.images;
-    }
-    return [product.cover];
-  };
+  // ─── 渲染 ───
 
-  // 渲染商品卡片
+  const getProductImages = (product: GuziProductH5) =>
+    product.images?.length ? product.images : [product.cover];
+
   const renderProductCard = (product: GuziProductH5) => {
     const images = getProductImages(product);
-    const showImageCount = images.length > 1;
-
     return (
-      <Card
-        key={product.id}
-        className="product-card"
-        onClick={() => navigate(`/product/${product.id}`)}
-      >
-        <div className="product-image-wrapper">
-          <Image src={product.cover} className="product-image" />
-          {showImageCount && (
-            <div className="image-count-badge">
-              <span>{images.length}</span>
-            </div>
-          )}
-        </div>
-        <div className="product-info">
-          <h4 className="product-title">{product.name}</h4>
-
-          {/* 价格区域 */}
-          <div className="product-price-row">
-            <span className="product-price">¥{product.price.toFixed(2)}</span>
-            {product.originalPrice && product.originalPrice > product.price && (
-              <span className="original-price">¥{product.originalPrice.toFixed(2)}</span>
+      <div data-track-id={product.id} className="product-card-wrapper">
+        <Card
+          key={product.id}
+          className="product-card"
+          onClick={() => {
+            tracker.click({ item_id: product.id, item_name: product.name, action: 'product_card' });
+            navigate(`/product/${product.id}`);
+          }}
+        >
+          <div className="product-image-wrapper">
+            <Image src={product.cover} className="product-image" />
+            {images.length > 1 && (
+              <div className="image-count-badge"><span>{images.length}</span></div>
             )}
           </div>
-
-          {/* 标签：IP标签 + 类别标签分开展示 */}
-          {product.ipTags?.length > 0 && (
-            <div className="product-tags">
-              {product.ipTags.slice(0, 2).map((tag, idx) => (
-                <Tag key={`ip-${idx}`} className="tag-item tag-ip">{tag}</Tag>
-              ))}
-              {product.categoryTags?.slice(0, 1).map((tag, idx) => (
-                <Tag key={`cat-${idx}`} className="tag-item tag-category">{tag}</Tag>
-              ))}
+          <div className="product-info">
+            <h4 className="product-title">{product.name}</h4>
+            <div className="product-price-row">
+              <span className="product-price">¥{product.price.toFixed(2)}</span>
+              {product.originalPrice && product.originalPrice > product.price && (
+                <span className="original-price">¥{product.originalPrice.toFixed(2)}</span>
+              )}
             </div>
-          )}
-
-          {/* 店铺和平台信息 */}
-          <div className="product-meta-row">
-            {product.platformName && (
-              <Tag color={product.platform === 'alimama' ? 'warning' : 'primary'} className="platform-tag">
-                {product.platformName}
-              </Tag>
+            {product.ipTags?.length > 0 && (
+              <div className="product-tags">
+                {product.ipTags.slice(0, 2).map((tag, idx) => (
+                  <Tag key={`ip-${idx}`} className="tag-item tag-ip">{tag}</Tag>
+                ))}
+                {product.categoryTags?.slice(0, 1).map((tag, idx) => (
+                  <Tag key={`cat-${idx}`} className="tag-item tag-category">{tag}</Tag>
+                ))}
+              </div>
             )}
-            {product.shopName && (
-              <span className="shop-name">{product.shopName}</span>
-            )}
-            {product.platforms.length > 1 && (
-              <Tag color="success" className="multi-platform-tag">
-                {product.platforms.length}个平台
-              </Tag>
-            )}
+            <div className="product-meta-row">
+              {product.platformName && (
+                <Tag
+                  color={product.platform === 'alimama' ? 'warning' : 'primary'}
+                  className="platform-tag"
+                >
+                  {product.platformName}
+                </Tag>
+              )}
+              {product.shopName && <span className="shop-name">{product.shopName}</span>}
+              {product.platforms.length > 1 && (
+                <Tag color="success" className="multi-platform-tag">
+                  {product.platforms.length}个平台
+                </Tag>
+              )}
+            </div>
           </div>
-        </div>
-      </Card>
+        </Card>
+      </div>
     );
   };
 
-  // 渲染 IP 标签（横向滚动）
   const renderIpFilterTags = () => (
     ipTags.length > 0 && (
       <div className="ip-filter-scroll">
@@ -331,14 +231,77 @@ const ProductsPage: React.FC = () => {
     )
   );
 
+  const renderCategorySidebar = () => (
+    !loading && categories.length > 0 && (
+      <div className="category-sidebar">
+        <div
+          className={`category-item ${cascadeValue === null ? 'active' : ''}`}
+          onClick={() => handleCategoryTagFilter(null)}
+        >
+          全部
+        </div>
+        {categories
+          .filter(cat => cat.is_active !== false)
+          .sort((a, b) => (a.order || 0) - (b.order || 0) || a.name.localeCompare(b.name))
+          .map(cat => (
+            <div key={cat._id} className="category-group">
+              <div className="category-parent-name">{cat.name}</div>
+              {(cat.sub_categories || [])
+                .filter(sub => sub.is_active !== false)
+                .sort((a, b) => (a.order || 0) - (b.order || 0) || a.name.localeCompare(b.name))
+                .map(sub => (
+                  <div
+                    key={sub._id}
+                    className={`category-item sub-category-item ${cascadeValue?.[1] === sub._id ? 'active' : ''}`}
+                    onClick={() => handleCategoryTagFilter([cat._id, sub._id])}
+                  >
+                    {sub.name}
+                  </div>
+                ))}
+            </div>
+          ))}
+      </div>
+    )
+  );
+
+  const renderContent = () => {
+    if (loading) {
+      return (
+        <div className="loading-container">
+          <SpinLoading />
+          <span className="loading-text">加载中...</span>
+        </div>
+      );
+    }
+    if (filteredProducts.length === 0) {
+      return <Empty description={activeTab === 'hot' ? '暂无热门商品' : '暂无商品'} />;
+    }
+    return (
+      <>
+        <div className="products-grid">
+          {filteredProducts.map(renderProductCard)}
+        </div>
+        {loadingMore && (
+          <div className="loading-more">
+            <SpinLoading />
+            <span>加载中...</span>
+          </div>
+        )}
+        {!loadingMore && products.length >= Math.min(total, 200) && (
+          <div className="no-more">— 已加载全部 {total} 件商品 —</div>
+        )}
+      </>
+    );
+  };
+
+  const hasMore = products.length < Math.min(total, 200);
+
   return (
     <div className="products-page">
-      {/* 固定顶部导航（tabs 页无返回按钮） */}
       <div className="navbar-fixed">
         <NavBar backIcon={false}>精选好物</NavBar>
       </div>
 
-      {/* SearchBar + 标签筛选（sticky 整体吸附在导航栏下方） */}
       <div className="products-sticky-header">
         <SearchBar
           placeholder="搜索谷子商品..."
@@ -346,8 +309,6 @@ const ProductsPage: React.FC = () => {
           onChange={handleSearch}
           className="search-bar"
         />
-
-        {/* IP 标签横向滚动筛选 */}
         {!loading && ipTags.length > 0 && (
           <div className="filter-section">
             {renderIpFilterTags()}
@@ -355,138 +316,28 @@ const ProductsPage: React.FC = () => {
         )}
       </div>
 
-      <Tabs
-        activeKey={activeTab}
-        onChange={handleTabChange}
-        className="filter-tabs"
-      >
+      <Tabs activeKey={activeTab} onChange={handleTabChange} className="filter-tabs">
         <Tabs.Tab title="全部" key="all">
           <div className="products-content-wrapper">
-            {/* 左侧一二级级联分类侧边栏 */}
-            {!loading && categories.length > 0 && (
-              <div className="category-sidebar">
-                <div
-                  className={`category-item ${cascadeValue === null ? 'active' : ''}`}
-                  onClick={() => handleCategoryTagFilter(null)}
-                >
-                  全部
-                </div>
-                {categories
-                  .filter(cat => cat.is_active !== false)
-                  .sort((a, b) => (a.order || 0) - (b.order || 0) || a.name.localeCompare(b.name))
-                  .map(cat => (
-                    <div key={cat._id} className="category-group">
-                      <div className="category-parent-name">{cat.name}</div>
-                      {(cat.sub_categories || [])
-                        .filter(sub => sub.is_active !== false)
-                        .sort((a, b) => (a.order || 0) - (b.order || 0) || a.name.localeCompare(b.name))
-                        .map(sub => (
-                          <div
-                            key={sub._id}
-                            className={`category-item sub-category-item ${cascadeValue?.[1] === sub._id ? 'active' : ''}`}
-                            onClick={() => handleCategoryTagFilter([cat._id, sub._id])}
-                          >
-                            {sub.name}
-                          </div>
-                        ))}
-                    </div>
-                  ))}
-              </div>
-            )}
+            {renderCategorySidebar()}
             <div className="products-content" ref={contentRef} style={{ overflowY: 'auto', flex: 1 }}>
-              {loading ? (
-                <div className="loading-container">
-                  <SpinLoading />
-                  <span className="loading-text">加载中...</span>
-                </div>
-              ) : filteredProducts.length === 0 ? (
-                <Empty description="暂无商品" />
-              ) : (
-                <>
-                  <div className="products-grid">
-                    {filteredProducts.map(renderProductCard)}
-                  </div>
-                  {loadingMore && (
-                    <div className="loading-more">
-                      <SpinLoading />
-                      <span>加载中...</span>
-                    </div>
-                  )}
-                  {!loadingMore && products.length >= total && filteredProducts.length > 0 && (
-                    <div className="no-more">— 已加载全部 {total} 件商品 —</div>
-                  )}
-                </>
-              )}
+              {renderContent()}
             </div>
           </div>
         </Tabs.Tab>
 
-        <Tabs.Tab title={<>🔥 热门</>} key="hot">
+        <Tabs.Tab title="🔥 热门" key="hot">
           <div className="products-content-wrapper">
-            {/* 左侧一二级级联分类侧边栏 */}
-            {!loading && categories.length > 0 && (
-              <div className="category-sidebar">
-                <div
-                  className={`category-item ${cascadeValue === null ? 'active' : ''}`}
-                  onClick={() => handleCategoryTagFilter(null)}
-                >
-                  全部
-                </div>
-                {categories
-                  .filter(cat => cat.is_active !== false)
-                  .sort((a, b) => (a.order || 0) - (b.order || 0) || a.name.localeCompare(b.name))
-                  .map(cat => (
-                    <div key={cat._id} className="category-group">
-                      <div className="category-parent-name">{cat.name}</div>
-                      {(cat.sub_categories || [])
-                        .filter(sub => sub.is_active !== false)
-                        .sort((a, b) => (a.order || 0) - (b.order || 0) || a.name.localeCompare(b.name))
-                        .map(sub => (
-                          <div
-                            key={sub._id}
-                            className={`category-item sub-category-item ${cascadeValue?.[1] === sub._id ? 'active' : ''}`}
-                            onClick={() => handleCategoryTagFilter([cat._id, sub._id])}
-                          >
-                            {sub.name}
-                          </div>
-                        ))}
-                    </div>
-                  ))}
-              </div>
-            )}
+            {renderCategorySidebar()}
             <div className="products-content" style={{ overflowY: 'auto', flex: 1 }}>
-              {loading ? (
-                <div className="loading-container">
-                  <SpinLoading />
-                  <span className="loading-text">加载中...</span>
-                </div>
-              ) : filteredProducts.length === 0 ? (
-                <Empty description="暂无热门商品" />
-              ) : (
-                <>
-                  <div className="products-grid">
-                    {filteredProducts.map(renderProductCard)}
-                  </div>
-                  {loadingMore && (
-                    <div className="loading-more">
-                      <SpinLoading />
-                      <span>加载中...</span>
-                    </div>
-                  )}
-                  {!loadingMore && products.length >= total && filteredProducts.length > 0 && (
-                    <div className="no-more">— 已加载全部 {total} 件商品 —</div>
-                  )}
-                </>
-              )}
+              {renderContent()}
             </div>
           </div>
         </Tabs.Tab>
       </Tabs>
 
-      {/* 底部安全区占位 */}
       <div className="bottom-safe-area" />
 
-      {/* 求谷悬浮按钮 */}
       <div className="want-guzi-fab" onClick={() => navigate('/want-guzi')}>
         <span className="fab-icon">🎁</span>
         <span className="fab-text">求谷</span>

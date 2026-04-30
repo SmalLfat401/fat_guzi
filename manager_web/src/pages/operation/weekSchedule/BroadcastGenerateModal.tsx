@@ -11,7 +11,7 @@ import {
 import dayjs from 'dayjs';
 import type { IntelEvent, IntelEventType } from './constants';
 import { INTEL_TYPE_CONFIG, CONTENT_TYPE_CONFIG } from './constants';
-import { llmApi } from '../../api/llm';
+import { llmApi } from '../../../api/llm';
 
 const { TextArea } = Typography;
 

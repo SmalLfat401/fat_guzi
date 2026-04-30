@@ -7,6 +7,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { NavBar, SearchBar, Card, Tabs, Empty } from 'antd-mobile';
 import { Help, Gift, Camera, CalendarEvent, Gamepad } from '@/components/icons';
 import { fetchGlossaryTerms, fetchGlossaryStats } from '@/api';
+import { tracker } from '@/utils/tracker';
 import type { H5GlossaryItem, GlossaryCategory, H5GlossaryStats } from '@/types';
 import './index.scss';
 
@@ -55,6 +56,7 @@ const GlossaryPage: React.FC = () => {
   const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const activeTabRef = useRef(activeTab);
   const searchValueRef = useRef(searchValue);
+  const prevSearchRef = useRef(searchValue);
 
   // 加载统计数据
   const loadStats = useCallback(async () => {
@@ -119,6 +121,10 @@ const GlossaryPage: React.FC = () => {
     }
 
     searchDebounceRef.current = setTimeout(() => {
+      if (searchValue.trim() && searchValue.trim() !== prevSearchRef.current) {
+        tracker.search(searchValue.trim());
+        prevSearchRef.current = searchValue.trim();
+      }
       setCurrentPage(1);
       loadTerms(1, false);
     }, 300);
@@ -145,6 +151,7 @@ const GlossaryPage: React.FC = () => {
     setCurrentPage(1);
     setTerms([]);
     activeTabRef.current = key;
+    tracker.action('switch_tab', { extra: { tab: key } });
     loadTerms(1, false);
   };
 

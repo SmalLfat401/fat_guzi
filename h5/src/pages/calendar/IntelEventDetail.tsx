@@ -5,6 +5,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { NavBar, Skeleton, Empty, Button } from 'antd-mobile';
 import { fetchIntelEventDetail } from '@/api';
+import { tracker } from '@/utils/tracker';
 import type { IntelEventDetail } from '@/types';
 import dayjs from 'dayjs';
 import './IntelEventDetail.scss';
@@ -57,12 +58,14 @@ const IntelEventDetailPage: React.FC = () => {
 
   const openPurchaseUrl = () => {
     if (detail?.purchase_url) {
+      tracker.click({ item_id: detail.id, item_name: detail.name, action: 'purchase' });
       window.location.href = detail.purchase_url;
     }
   };
 
   const openSourcePost = () => {
     if (detail?.source_post_url) {
+      tracker.click({ item_id: detail.id, item_name: detail.name, action: 'view_source' });
       window.location.href = detail.source_post_url;
     }
   };

@@ -18,6 +18,7 @@ from app.api.features import router as features_router
 from app.api.guzi_categories import router as guzi_categories_router
 from app.api.publish_channels import router as publish_channels_router
 from app.api.schedule_items import router as schedule_items_router
+from app.api.track_events import router as track_events_router
 
 __all__ = [
     "routes_router",
@@ -39,4 +40,5 @@ __all__ = [
     "guzi_categories_router",
     "publish_channels_router",
     "schedule_items_router",
+    "track_events_router",
 ]

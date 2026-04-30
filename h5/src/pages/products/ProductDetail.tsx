@@ -15,6 +15,7 @@ import {
 } from 'antd-mobile';
 import { Share, Star, Clock, Fire, Wallet, Package, Store, Truck, CreditCard } from '@/components/icons';
 import { fetchProductDetail, fetchCategories, fetchTags, generateTkl } from '@/api';
+import { tracker } from '@/utils/tracker';
 import type { GuziProductH5, GuziCategoryWithSubs, GuziTag } from '@/types';
 import dayjs from 'dayjs';
 import './ProductDetail.scss';
@@ -86,13 +87,35 @@ const ProductDetailPage: React.FC = () => {
     loadInitialData();
   }, []);
 
+  // 进入详情页时上报带上下文的 PV（商品所属的 IP 和分类）
+  useEffect(() => {
+    if (!product) return;
+    // ipTags / categoryTags 取自 product 上的字符串数组，取第一个作为上下文
+    const ipTag = product.ipTags?.[0];
+    const categoryTag = product.categoryTags?.[0];
+    tracker.pvWithContext(product.id, product.name, ipTag || undefined, categoryTag || undefined);
+  }, [product]);
+
   // 收藏/取消收藏
+  const getContext = (prod: GuziProductH5) => ({
+    ip_tag: prod.ipTags?.[0] || undefined,
+    category_tag: prod.categoryTags?.[0] || undefined,
+  });
+
   const handleToggleFavorite = useCallback(() => {
     if (!product) return;
     const nowFavorited = toggleFavorite(product.id);
     setIsFavorited(nowFavorited);
     Toast.show({ content: nowFavorited ? '已添加收藏' : '已取消收藏' });
+    tracker.click({ item_id: product.id, item_name: product.name, action: nowFavorited ? 'favorite' : 'unfavorite', ...getContext(product) });
   }, [product]);
+
+  const handleImageClick = () => {
+    setImageViewerVisible(true);
+    if (product) {
+      tracker.click({ item_id: product.id, item_name: product.name, action: 'view_image', extra: { index: activeImage }, ...getContext(product) });
+    }
+  };
 
   // 分享（复制本页链接）
   const handleShare = useCallback(async () => {
@@ -104,6 +127,7 @@ const ProductDetailPage: React.FC = () => {
     } catch {
       Toast.show({ content: '复制失败，请长按复制' });
     }
+    tracker.click({ item_id: product.id, item_name: product.name, action: 'share', ...getContext(product) });
   }, [product]);
 
   // 复制淘口令
@@ -114,7 +138,10 @@ const ProductDetailPage: React.FC = () => {
     } catch {
       Toast.show({ content: '复制失败，请长按复制' });
     }
-  }, []);
+    if (product) {
+      tracker.click({ item_id: product.id, item_name: product.name, action: 'get_tkl', ...getContext(product) });
+    }
+  }, [product]);
 
   // 实际执行淘口令生成并复制
   const doGenerateAndCopy = useCallback(async (platformIndex: number) => {
@@ -138,8 +165,10 @@ const ProductDetailPage: React.FC = () => {
           const tklText = `🎁【${title}】${updatedPlatform.tkl}\n到手 **${price}元**`;
           await navigator.clipboard.writeText(tklText);
           Toast.show({ content: '淘口令已复制，可直接打开淘宝APP' });
+          tracker.click({ item_id: product.id, item_name: product.name, action: 'get_tkl', extra: { platform: updatedPlatform.platformName }, ...getContext(product) });
         } else {
           Toast.show({ content: '淘口令生成成功' });
+          tracker.click({ item_id: product.id, item_name: product.name, action: 'get_tkl', extra: { platform: updatedPlatform.platformName, no_content: true }, ...getContext(product) });
         }
       }
     } catch (error) {
@@ -231,7 +260,7 @@ const ProductDetailPage: React.FC = () => {
                 src={img}
                 alt={product.name}
                 className="product-image"
-                onClick={() => setImageViewerVisible(true)}
+                onClick={handleImageClick}
               />
             </Swiper.Item>
           ))}

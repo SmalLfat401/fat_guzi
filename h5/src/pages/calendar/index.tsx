@@ -6,6 +6,7 @@ import React, { useEffect, useState, useMemo, useCallback, useRef } from 'react'
 import { useNavigate, useLocation, Outlet } from 'react-router-dom';
 import { NavBar, Skeleton, Empty } from 'antd-mobile';
 import { fetchCalendarEvents } from '@/api';
+import { tracker } from '@/utils/tracker';
 import type { CalendarEvent } from '@/types';
 import dayjs from 'dayjs';
 import './index.scss';
@@ -158,6 +159,10 @@ const CalendarPage: React.FC = () => {
   const handleFilterChange = (filter: FilterType) => {
     setCurFilter(filter);
     setCurCategory(filter);
+    if (filter !== 'all') {
+      const filterLabel = FILTER_CONFIG.find(f => f.key === filter)?.label || String(filter);
+      tracker.filter('event_category', filterLabel);
+    }
   };
 
   // 切换月份时重新加载（仅日历视图），限制在三年范围内
@@ -170,11 +175,13 @@ const CalendarPage: React.FC = () => {
     if (y < minYear || y > maxYear) return;
     setCurMonth(m);
     setCurYear(y);
+    tracker.action('change_month', { extra: { direction: delta > 0 ? 'next' : 'prev', year: y, month: m + 1 } });
   };
 
   // 切换视图模式时重新加载
   const handleModeChange = (mode: 'cal' | 'list') => {
     setCurMode(mode);
+    tracker.action('switch_view', { extra: { view: mode } });
   };
 
   // ============================================================
@@ -321,11 +328,13 @@ const CalendarPage: React.FC = () => {
   const selectDate = (dateStr: string) => {
     setSelectedDate(dateStr);
     if (curMode !== 'cal') handleModeChange('cal');
+    tracker.click({ action: 'select_date', extra: { date: dateStr } });
   };
 
   const today = dayjs().format('YYYY-MM-DD');
 
   const handleCardClick = (e: UnifiedEvent) => {
+    tracker.click({ item_id: e.id, item_name: e.name, action: 'event_card' });
     if (e.productId) {
       navigate(`/product/${e.productId}`);
     } else if (e.id && e.id.startsWith('intel_')) {
